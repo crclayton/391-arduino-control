@@ -10,8 +10,8 @@
 #include <Defs.h>
 
 double pidAltitudeSetpoint,
-pidAltitudeInput,
-pidAltitudeOutput;	
+	pidAltitudeInput,
+	pidAltitudeOutput;	
 
 PID altitudePID(
 	&pidAltitudeInput,     /* actual value */
@@ -30,17 +30,18 @@ void setup()
 	// 127.5 = 50%  duty cycle, 0.75/490Hz -> 1.531ms T - almost 0
 	// we give it 200 and 250 so it will never go in reverse and 
 	// won't go full-speed ahead
-	altitudePID.SetOutputLimits(200, 250);
+	altitudePID.SetOutputLimits(MIN_ALTITUDE_OUTPUT, MAX_ALTITUDE_OUTPUT);
 	altitudePID.SetMode(AUTOMATIC);
+	altitudePID.SetSampleTime(10); // instead of 100ms, recalculate every 10ms
 
 	/*set initial values*/
-	analogWrite(ALTITUDE_OUTPUT_PIN, 200);
+	//analogWrite(ALTITUDE_OUTPUT_PIN, INITIAL_ALTITUDE_OUTPUT);
 	pidAltitudeSetpoint = INITIAL_ALTITUDE_SETPOINT;
 }
 
 void loop()
 {
-	// setpoint driven w/ PID
+	// set-point driven w/ PID
 	double raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
 	// current altitude scaled between 0-255
 	pidAltitudeInput = scaleBetween(raw_altitude, MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
@@ -48,22 +49,61 @@ void loop()
 	altitudePID.Compute();
 	analogWrite(ALTITUDE_OUTPUT_PIN, pidAltitudeOutput);
 
-	Serial.print("Setpoint: ");
-	Serial.print(pidAltitudeSetpoint);
-	Serial.print(",\tRaw Input:");
+	Serial.print("Raw Input: ");
 	Serial.print(raw_altitude);
-	Serial.print(",\tScaled Input: ");
+	Serial.print("\tScaled Input/Set-point: ");
 	Serial.print(pidAltitudeInput);
-	Serial.print(",\tDiff: ");
-	Serial.print(percentDifference(pidAltitudeInput, pidAltitudeSetpoint));
-	Serial.print(",\tOutput: ");
+	Serial.print("/");
+	Serial.print(pidAltitudeSetpoint);
+	Serial.print("\tOutput: ");
 	Serial.print(pidAltitudeOutput);
 	Serial.print("\r\n");
 
-	// change altitude setpoint if new value given
+	// change altitude set-point if new value given
 	if (Serial.available() > 0) {
-		pidAltitudeSetpoint = Serial.parseFloat();
+		assignSerialInput(Serial.readString());
 	}
+}
+
+int assignSerialInput(String serialInput) {
+
+	if (serialInput[0] != '-') {
+		Serial.println("ERROR: Expecting identifier. Ex: '-P 0.005' or '-s 150'");
+		return -1;
+	}
+
+	char serialInputIdentifier = serialInput[1];
+	double serialInputValue = serialInput.substring(3).toFloat();
+
+	switch (serialInputIdentifier) {
+		case('s') :
+			pidAltitudeSetpoint = serialInputValue;
+			break;
+		case('o') :
+			pidAltitudeOutput = serialInputValue;
+			break;
+		case('P') :
+			P_A = serialInputValue;
+			altitudePID.SetTunings(P_A, I_A, D_A);
+			break;
+		case('I') :
+			I_A = serialInputValue;
+			altitudePID.SetTunings(P_A, I_A, D_A);
+			break;
+		case('D') :
+			D_A = serialInputValue;
+			altitudePID.SetTunings(P_A, I_A, D_A);
+		default:
+			Serial.println("ERROR: Unknown identifier.");
+			return -1;
+	}
+
+	Serial.print("SUCCESS: Value ");
+	Serial.print(serialInputValue);
+	Serial.print(" was assigned to ");
+	Serial.print(serialInputIdentifier);
+	Serial.print("\r\n");
+	return 0;
 }
 
 double scaleBetween(double input, double minimum, double maximum, double output_min, double output_max) {

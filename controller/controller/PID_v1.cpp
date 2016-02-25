@@ -4,7 +4,6 @@
 *
 * This Library is licensed under a GPLv3 License
 **********************************************************************************************/
-
 #if ARDUINO >= 100
 #include "Arduino.h"
 #else
