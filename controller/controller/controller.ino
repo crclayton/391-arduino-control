@@ -7,22 +7,7 @@
 */
 
 #include <PID_v1.h>
-
-/* THESE NEED TO BE ADJUSTED UPON STARTUP :S */
-#define MIN_ALTITUDE_READING             427.0
-#define MAX_ALTITUDE_READING             638.0
-
-/*  The above readings are scaled between 0-255, and the
-angle setpoint is the desired altitude between 0-255, usually halfway  */
-#define ANGLE_SETPOINT                0.5 * 255 
-
-#define P_A   0.005  
-#define I_A   0.009
-#define D_A   0.005 // small because we have small resolution (200 samples)
-
-#define ALTITUDE_INPUT_PIN       3
-#define ALTITUDE_OUTPUT_PIN           3  
-
+#include <Defs.h>
 
 double pidAltitudeSetpoint,
 pidAltitudeInput,
@@ -43,12 +28,14 @@ void setup()
 
 	// 255   = 100% duty cycle, 1/490Hz    -> 2.041ms T - fastest
 	// 127.5 = 50%  duty cycle, 0.75/490Hz -> 1.531ms T - almost 0
+	// we give it 200 and 250 so it will never go in reverse and 
+	// won't go full-speed ahead
 	altitudePID.SetOutputLimits(200, 250);
 	altitudePID.SetMode(AUTOMATIC);
 
 	/*set initial values*/
 	analogWrite(ALTITUDE_OUTPUT_PIN, 200);
-	pidAltitudeSetpoint = ANGLE_SETPOINT;
+	pidAltitudeSetpoint = INITIAL_ALTITUDE_SETPOINT;
 }
 
 void loop()
