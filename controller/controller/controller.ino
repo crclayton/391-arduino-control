@@ -62,15 +62,35 @@ void setup()
 	yawPID.SetSampleTime(100); // instead of 100ms, recalculate every 10ms
 
 	/*set initial values*/
+	// though it fucking ignores these
+	pidYawOutput = INITIAL_YAW_OUTPUT;
+	pidAltitudeOutput = INITIAL_ALTITUDE_OUTPUT;
 	analogWrite(YAW_OUTPUT_PIN, INITIAL_YAW_OUTPUT);
 	analogWrite(ALTITUDE_OUTPUT_PIN, INITIAL_ALTITUDE_OUTPUT);
 
+	/*
+	// set setpoints to halfway between the min and max readings
 	pidAltitudeSetpoint = abs(MAX_ALTITUDE_READING - MIN_ALTITUDE_READING)/2.0;
-	pidYawSetpoint = abs(MAX_YAW_READING - MIN_YAW_READING) / 2.0;;
+	pidYawSetpoint = abs(MAX_YAW_READING - MIN_YAW_READING) / 2.0;
+	*/
+
+	// set setpoints to current positions until specified
+	pidAltitudeSetpoint = scaleValue(
+		analogRead(ALTITUDE_INPUT_PIN), 
+		MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
+
+	pidYawSetpoint = scaleValue(
+		analogRead(YAW_INPUT_PIN), 
+		MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
+
+	Serial.print(pidYawOutput);
+	Serial.print(pidAltitudeOutput);
 }
 
 void loop()
 {
+
+
 	// set-point driven w/ PID
 	double raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
 	double raw_yaw = analogRead(YAW_INPUT_PIN);
@@ -114,6 +134,11 @@ void loop()
 	Serial.print("\\");
 	Serial.print(pidYawOutput);
 	
+	if (pidYawOutput < 180)
+		Serial.print("CCW");
+	else
+		Serial.print("CW");
+
 	Serial.print("\n\r");
 
 	/*
@@ -136,27 +161,22 @@ int assignSerialInput(String serialInput) {
 		return -1;
 	}
 
-	char serialInputIdentifier = serialInput[1];
+	char serialInputIdentifier = serialInput[1]; 
 	double serialInputValue = serialInput.substring(3).toFloat();
 
 	switch (serialInputIdentifier) {
-		case('s') :
+		case('a') :
 			pidAltitudeSetpoint = serialInputValue;
 			break;
-		case('o') :
+		case('A') :
 			pidAltitudeOutput = serialInputValue;
 			break;
-		case('P') :
-			P_A = serialInputValue;
-			altitudePID.SetTunings(P_A, I_A, D_A);
+		case('y') :
+			pidYawSetpoint = serialInputValue;
 			break;
-		case('I') :
-			I_A = serialInputValue;
-			altitudePID.SetTunings(P_A, I_A, D_A);
+		case('Y') :
+			pidYawOutput = serialInputValue;
 			break;
-		case('D') :
-			D_A = serialInputValue;
-			altitudePID.SetTunings(P_A, I_A, D_A);
 		default:
 			Serial.println("ERROR: Unknown identifier.");
 			return -1;
