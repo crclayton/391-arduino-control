@@ -8,17 +8,27 @@
 
 #include <LiquidCrystal.h>
 #include <PID_v1.h>
-#include <Defs.h>
+#include <Definitions.h>
 
 double pidAltitudeSetpoint,
 	pidAltitudeInput,
-	pidAltitudeOutput;	
+	pidAltitudeOutput;
+
+double pidYawSetpoint,
+	pidYawInput,
+	pidYawOutput;
 
 PID altitudePID(
 	&pidAltitudeInput,     /* actual value */
 	&pidAltitudeOutput,    /* modification value, 0-255 */
 	&pidAltitudeSetpoint,  /* desired value */
 	P_A, I_A, D_A, DIRECT);
+
+PID yawPID(
+	&pidYawInput,     /* actual value */
+	&pidYawOutput,    /* modification value, 0-255 */
+	&pidYawSetpoint,  /* desired value */
+	P_Y, I_Y, D_Y, DIRECT);
 
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
@@ -29,6 +39,10 @@ void setup()
 {
 	pinMode(ALTITUDE_OUTPUT_PIN, OUTPUT);
 	pinMode(ALTITUDE_INPUT_PIN, INPUT);
+
+	pinMode(YAW_OUTPUT_PIN, OUTPUT);
+	pinMode(YAW_INPUT_PIN, INPUT);
+
 
 	Serial.begin(9600);
 
@@ -43,20 +57,31 @@ void setup()
 	altitudePID.SetMode(AUTOMATIC);
 	altitudePID.SetSampleTime(100); // instead of 100ms, recalculate every 10ms
 
+	yawPID.SetOutputLimits(MIN_YAW_OUTPUT, MAX_YAW_OUTPUT);
+	yawPID.SetMode(AUTOMATIC);
+	yawPID.SetSampleTime(100); // instead of 100ms, recalculate every 10ms
+
 	/*set initial values*/
-	//analogWrite(ALTITUDE_OUTPUT_PIN, INITIAL_ALTITUDE_OUTPUT);
-	pidAltitudeSetpoint = INITIAL_ALTITUDE_SETPOINT;
+	analogWrite(YAW_OUTPUT_PIN, INITIAL_YAW_OUTPUT);
+	analogWrite(ALTITUDE_OUTPUT_PIN, INITIAL_ALTITUDE_OUTPUT);
+
+	pidAltitudeSetpoint = abs(MAX_ALTITUDE_READING - MIN_ALTITUDE_READING)/2.0;
+	pidYawSetpoint = abs(MAX_YAW_READING - MIN_YAW_READING) / 2.0;;
 }
 
 void loop()
 {
 	// set-point driven w/ PID
 	double raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
+	double raw_yaw = analogRead(YAW_INPUT_PIN);
+
 	// current altitude scaled between 0-255
 	pidAltitudeInput = scaleValue(raw_altitude, MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
+	pidYawInput = scaleValue(raw_yaw, MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
 
+	/*
 	// if the button is pressed
-	if (buttonPressed(BUTTON_INPUT_PIN)) {
+	if (buttonPressed(BUTTON_INPUT_PIN) && false) {
 		//and we are in minimum mode, zero the min altutide reading
 		if (buttonMinMode)	MIN_ALTITUDE_READING = raw_altitude;
 		else                MAX_ALTITUDE_READING = raw_altitude;
@@ -64,14 +89,39 @@ void loop()
 		// then change the mode we're in NOTE: THIS MIGHT NOT WORK
 		buttonMinMode = !buttonMinMode;
 	}
+	*/
 
 	altitudePID.Compute();
+	yawPID.Compute();
 	analogWrite(ALTITUDE_OUTPUT_PIN, pidAltitudeOutput);
+	analogWrite(YAW_OUTPUT_PIN, pidYawOutput);
 
+	Serial.print("Altitude I\\S\\O:\t");
+	Serial.print(raw_altitude);
+	Serial.print("\\");
+	Serial.print(pidAltitudeInput);
+	Serial.print("\\");
+	Serial.print(pidAltitudeSetpoint);
+	Serial.print("\\");
+	Serial.print(pidAltitudeOutput);
+
+	Serial.print("\tYaw I\\S\\O:\t");
+	Serial.print(raw_yaw);
+	Serial.print("\\");
+	Serial.print(pidYawInput);
+	Serial.print("\\");
+	Serial.print(pidYawSetpoint);
+	Serial.print("\\");
+	Serial.print(pidYawOutput);
+	
+	Serial.print("\n\r");
+
+	/*
 	lcdPrint("Height: ", pidAltitudeInput, 2, 1);
 	lcdPrint("", raw_altitude, 2, 16);
 	lcdPrint("Target: ", pidAltitudeSetpoint, 3, 1);
 	lcdPrint("Output: ", pidAltitudeOutput, 4, 1);
+	*/
 
 	// change altitude set-point if new value given
 	if (Serial.available() > 0) {
