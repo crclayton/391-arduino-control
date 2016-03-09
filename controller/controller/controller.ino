@@ -18,6 +18,8 @@ double pidYawSetpoint,
 	pidYawInput,
 	pidYawOutput;
 
+volatile int raw_yaw = 0;
+
 PID altitudePID(
 	&pidAltitudeInput,     /* actual value */
 	&pidAltitudeOutput,    /* modification value, 0-255 */
@@ -41,14 +43,16 @@ void setup()
 	pinMode(ALTITUDE_INPUT_PIN, INPUT);
 
 	pinMode(YAW_OUTPUT_PIN, OUTPUT);
-	pinMode(YAW_INPUT_PIN, INPUT);
+	pinMode(YAW_INPUT_PIN_1, INPUT);
+	pinMode(YAW_INPUT_PIN_2, INPUT);
 
+	attachInterrupt(0, doEncoderA, CHANGE);
+	attachInterrupt(1, doEncoderB, CHANGE);
 
 	Serial.begin(9600);
 
 	// define number of columns and rows
 	lcd.begin(20, 4);
-	lcd.print("Team A2 TTv1");
 	// 255   = 100% duty cycle, 1/490Hz    -> 2.041ms T - fastest
 	// 127.5 = 50%  duty cycle, 0.75/490Hz -> 1.531ms T - almost 0
 	// we give it 200 and 250 so it will never go in reverse and 
@@ -60,13 +64,6 @@ void setup()
 	yawPID.SetOutputLimits(MIN_YAW_OUTPUT, MAX_YAW_OUTPUT);
 	yawPID.SetMode(AUTOMATIC);
 	yawPID.SetSampleTime(100); // instead of 100ms, recalculate every 10ms
-
-	/*set initial values*/
-	// though it fucking ignores these
-	pidYawOutput = INITIAL_YAW_OUTPUT;
-	pidAltitudeOutput = INITIAL_ALTITUDE_OUTPUT;
-	analogWrite(YAW_OUTPUT_PIN, INITIAL_YAW_OUTPUT);
-	analogWrite(ALTITUDE_OUTPUT_PIN, INITIAL_ALTITUDE_OUTPUT);
 
 	/*
 	// set setpoints to halfway between the min and max readings
@@ -80,39 +77,41 @@ void setup()
 		MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
 
 	pidYawSetpoint = scaleValue(
-		analogRead(YAW_INPUT_PIN), 
+		raw_yaw, 
 		MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
 
-	Serial.print(pidYawOutput);
-	Serial.print(pidAltitudeOutput);
+
 }
+
+bool first = true;
 
 void loop()
 {
+	// hackery alert. 
+	// The inital output is set to the minimum output limit
+	// at first, that's fine with the altitude motor because it 
+	// goes only in one direction,  so we set it the lower limit
+	// to not moving because it only needs to move one direction
 
+	// the yaw needs to move two directions, so the lower limit needs to be the
+	// maximum velocity in the negative direction so upon startup that's what it
+	// does, not good. So what we do is we originally set the minimum to be not moving,
+	// then after that's what the initalized, we reduce the lower output limit
+	if (first) {
+		yawPID.SetOutputLimits(160, MAX_YAW_OUTPUT);
+		first = false;
+	}
 
 	// set-point driven w/ PID
 	double raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
-	double raw_yaw = analogRead(YAW_INPUT_PIN);
 
 	// current altitude scaled between 0-255
 	pidAltitudeInput = scaleValue(raw_altitude, MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
 	pidYawInput = scaleValue(raw_yaw, MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
 
-	/*
-	// if the button is pressed
-	if (buttonPressed(BUTTON_INPUT_PIN) && false) {
-		//and we are in minimum mode, zero the min altutide reading
-		if (buttonMinMode)	MIN_ALTITUDE_READING = raw_altitude;
-		else                MAX_ALTITUDE_READING = raw_altitude;
-
-		// then change the mode we're in NOTE: THIS MIGHT NOT WORK
-		buttonMinMode = !buttonMinMode;
-	}
-	*/
-
 	altitudePID.Compute();
 	yawPID.Compute();
+
 	analogWrite(ALTITUDE_OUTPUT_PIN, pidAltitudeOutput);
 	analogWrite(YAW_OUTPUT_PIN, pidYawOutput);
 
@@ -126,27 +125,25 @@ void loop()
 	Serial.print(pidAltitudeOutput);
 
 	Serial.print("\tYaw I\\S\\O:\t");
-	Serial.print(raw_yaw);
-	Serial.print("\\");
 	Serial.print(pidYawInput);
 	Serial.print("\\");
 	Serial.print(pidYawSetpoint);
 	Serial.print("\\");
 	Serial.print(pidYawOutput);
 	
-	if (pidYawOutput < 180)
-		Serial.print("CCW");
-	else
-		Serial.print("CW");
-
 	Serial.print("\n\r");
 
-	/*
-	lcdPrint("Height: ", pidAltitudeInput, 2, 1);
-	lcdPrint("", raw_altitude, 2, 16);
-	lcdPrint("Target: ", pidAltitudeSetpoint, 3, 1);
-	lcdPrint("Output: ", pidAltitudeOutput, 4, 1);
-	*/
+	lcd.setCursor(0, 0); 
+	lcd.print("   Altitude  Yaw");
+	lcdPrint("I: ", pidAltitudeInput, 2, 1);
+	lcdPrint("S: ", pidAltitudeSetpoint, 3, 1);
+	lcdPrint("O: ", pidAltitudeOutput, 4, 1);
+
+	lcdPrint("", pidYawInput, 2, 14);
+	lcdPrint("", pidYawSetpoint, 3, 14);
+	lcdPrint("", pidYawOutput, 4, 14);
+
+
 
 	// change altitude set-point if new value given
 	if (Serial.available() > 0) {
@@ -166,17 +163,13 @@ int assignSerialInput(String serialInput) {
 
 	switch (serialInputIdentifier) {
 		case('a') :
-			pidAltitudeSetpoint = serialInputValue;
-			break;
+			pidAltitudeSetpoint = serialInputValue; break;
 		case('A') :
-			pidAltitudeOutput = serialInputValue;
-			break;
+			pidAltitudeOutput = serialInputValue; break;
 		case('y') :
-			pidYawSetpoint = serialInputValue;
-			break;
+			pidYawSetpoint = serialInputValue; break;
 		case('Y') :
-			pidYawOutput = serialInputValue;
-			break;
+			pidYawOutput = serialInputValue; break;
 		default:
 			Serial.println("ERROR: Unknown identifier.");
 			return -1;
@@ -206,4 +199,42 @@ double percentDifference(double input, double setpoint) {
 bool buttonPressed(int pin) {
 	int buttonState = digitalRead(pin);
 	return buttonState == HIGH;
+}
+
+
+void doEncoderA() {
+
+	if (digitalRead(YAW_INPUT_PIN_1) == HIGH) {
+
+		if (digitalRead(YAW_INPUT_PIN_2) == LOW) 
+			raw_yaw = raw_yaw + 1;         
+		else 
+			raw_yaw = raw_yaw - 1;         
+	}
+	else                                      
+	{
+		if (digitalRead(YAW_INPUT_PIN_2) == HIGH) 
+			raw_yaw = raw_yaw + 1;          		
+		else 
+			raw_yaw = raw_yaw - 1;          
+	}
+}
+
+void doEncoderB() {
+
+	if (digitalRead(YAW_INPUT_PIN_2) == HIGH) {
+
+		if (digitalRead(YAW_INPUT_PIN_1) == HIGH) 
+			raw_yaw = raw_yaw + 1;        
+		else 
+			raw_yaw = raw_yaw - 1;        
+	}
+	else {
+
+		if (digitalRead(YAW_INPUT_PIN_1) == LOW) 
+			raw_yaw = raw_yaw + 1;          
+		else 
+			raw_yaw = raw_yaw - 1;         
+	}
+
 }
