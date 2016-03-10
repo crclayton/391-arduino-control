@@ -10,46 +10,57 @@
 #include <PID_v1.h>
 #include <Definitions.h>
 
-double pidAltitudeSetpoint,
-	pidAltitudeInput,
-	pidAltitudeOutput;
-
-double pidYawSetpoint,
-	pidYawInput,
-	pidYawOutput;
 
 class ControlDirection {
 public:
-	double pidSetpoint;
-	double pidInput;
-	double pidOutput;
+	double setpoint;
+	double input;
+	double output;
 	double rawInput;
-	PID pid;
-private:
 
+	// these are needed to scale the input
+	// between 0-255 for processing
+	double minInput;
+	double maxInput;
+
+	// these are needed to scale output
+	// duty cycle between 
+	double minOutput;
+	double maxOutput;
+
+	double KP;
+	double KI;
+	double KD;
+
+	void setPid(double kp, double ki, double kd ) {
+		KP = kp;
+		KI = ki;
+		KD = kd;
+	}
 };
 
-volatile int rawYaw = 0;
-
-PID altitudePID(
-	&pidAltitudeInput,     /* actual value */
-	&pidAltitudeOutput,    /* modification value, 0-255 */
-	&pidAltitudeSetpoint,  /* desired value */
-	P_A, I_A, D_A, DIRECT);
-
-PID yawPID(
-	&pidYawInput,     /* actual value */
-	&pidYawOutput,    /* modification value, 0-255 */
-	&pidYawSetpoint,  /* desired value */
-	P_Y, I_Y, D_Y, DIRECT);
+ControlDirection Yaw, Altitude;
 
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
 
-bool buttonMinMode = true;
+
+PID AltitudePid(
+	&Altitude.input,     /* actual value */
+	&Altitude.output,    /* modification value, 0-255 */
+	&Altitude.setpoint,  /* desired value */
+	P_A, I_A, D_A, DIRECT);
+
+PID YawPid(
+	&Yaw.input,     
+	&Yaw.output,    
+	&Yaw.setpoint,  
+	P_Y, I_Y, D_Y, DIRECT);
+
 
 void setup()
 {
+	// initialize pins and interupts
 	pinMode(ALTITUDE_OUTPUT_PIN, OUTPUT);
 	pinMode(ALTITUDE_INPUT_PIN, INPUT);
 
@@ -60,79 +71,78 @@ void setup()
 	attachInterrupt(0, doEncoderA, CHANGE);
 	attachInterrupt(1, doEncoderB, CHANGE);
 
+	// configure serial and LCD
 	Serial.begin(9600);
+	lcd.begin(20, 4); // define number of columns and rows
 
-	// define number of columns and rows
-	lcd.begin(20, 4);
+	//----------- configure PID values ----------- //
+
 	// 255   = 100% duty cycle, 1/490Hz    -> 2.041ms T - fastest
 	// 127.5 = 50%  duty cycle, 0.75/490Hz -> 1.531ms T - almost 0
 	// we give it 200 and 250 so it will never go in reverse and 
 	// won't go full-speed ahead
-	altitudePID.SetOutputLimits(MIN_ALTITUDE_OUTPUT, MAX_ALTITUDE_OUTPUT);
-	altitudePID.SetMode(AUTOMATIC);
-	altitudePID.SetSampleTime(100); // instead of 100ms, recalculate every 10ms
 
-	yawPID.SetOutputLimits(MIN_YAW_OUTPUT, MAX_YAW_OUTPUT);
-	yawPID.SetMode(AUTOMATIC);
-	yawPID.SetSampleTime(100); // instead of 100ms, recalculate every 10ms
+	// YAW
+	Yaw.setPid(0.005, 0.009, 0.005);
+	Yaw.maxOutput = 250;
+	Yaw.minOutput = 155;
+	Yaw.minInput = 200;
+	Yaw.maxInput = -200;
+	YawPid.SetOutputLimits(Yaw.minOutput, Yaw.maxOutput);
+	YawPid.SetMode(AUTOMATIC);
 
-	/*
-	// set setpoints to halfway between the min and max readings
-	pidAltitudeSetpoint = abs(MAX_ALTITUDE_READING - MIN_ALTITUDE_READING)/2.0;
-	pidYawSetpoint = abs(MAX_YAW_READING - MIN_YAW_READING) / 2.0;
-	*/
+	// set setpoint to 0 (current position)
+	Yaw.setpoint = scaleValue(0, Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
 
-	double initial_raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
+	// ALTITUDE
+	Altitude.setPid(0.100, 0.050, 0.200);
+	Altitude.maxOutput = 254;  
+	Altitude.minOutput = 180; // Altitude should never go backwards
+	Altitude.rawInput = analogRead(ALTITUDE_INPUT_PIN);
+	Altitude.minInput = Altitude.rawInput; // to prevent wander, set minimum to 0 
+	Altitude.maxInput = Altitude.rawInput - ALTITUDE_RANGE; // and maximum to 200 points difference
 
-	
-	// hackery alert: set minimum value to the current position and the maximum value the diffe 200 plus that
-	MIN_ALTITUDE_READING = initial_raw_altitude;
-	MAX_ALTITUDE_READING = initial_raw_altitude - 200;
+	AltitudePid.SetOutputLimits(Altitude.minOutput, Altitude.maxOutput);
+	AltitudePid.SetMode(AUTOMATIC);
 
-	// set setpoints to current positions until specified
-	pidAltitudeSetpoint = scaleValue(
-		initial_raw_altitude,
-		MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
-
-
-	pidYawSetpoint = scaleValue(
-		rawYaw, 
-		MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
-
+	// set setpoints to current position until otherwise specified
+	Altitude.setpoint = scaleValue(Altitude.rawInput, 
+		Altitude.minInput, Altitude.maxInput, 0.0, 255.0);
 
 }
 
 void loop()
 {
-	// current position values scaled between 0-255
-	pidAltitudeInput = scaleValue(analogRead(ALTITUDE_INPUT_PIN), 
-		MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
+	// current position values from potentiometer scaled between 0-255
+	Altitude.input = scaleValue(analogRead(ALTITUDE_INPUT_PIN), 
+		Altitude.minInput, Altitude.maxInput, 0.0, 255.0);
 
-	pidYawInput = scaleValue(rawYaw, 
-		MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
+	// current position value from encoder's interupt counter
+	Yaw.input = scaleValue(Yaw.rawInput, 
+		Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
 
-	altitudePID.Compute();
-	yawPID.Compute();
+	// TODO: re-write pid library getting rid of excess junk
+	AltitudePid.Compute();
+	YawPid.Compute();
 
-	analogWrite(ALTITUDE_OUTPUT_PIN, pidAltitudeOutput);
-	analogWrite(YAW_OUTPUT_PIN, pidYawOutput);
+	analogWrite(ALTITUDE_OUTPUT_PIN, Altitude.output);
+	analogWrite(YAW_OUTPUT_PIN, Yaw.output);
 
 	lcdPrint("   Altitude  Yaw", 1, 1);
 	lcdPrint("I: ", 2, 1);
 	lcdPrint("S: ", 3, 1);
 	lcdPrint("O: ", 4, 1);
 
-	lcdPrint(String(pidAltitudeInput), 2, 4);
-	lcdPrint(String(pidAltitudeSetpoint), 3, 4);
-	lcdPrint(String(pidAltitudeOutput), 4, 4);
+	lcdPrint(String(Altitude.input), 2, 4);
+	lcdPrint(String(Altitude.setpoint), 3, 4);
+	lcdPrint(String(Altitude.output), 4, 4);
 
-	lcdPrint(String(scaleValue(pidYawInput, -200, 200, 0, 360)), 2, 14);
-	lcdPrint(String(pidYawSetpoint), 3, 14);
-	lcdPrint(String(pidYawOutput), 4, 14);
+	lcdPrint(String(Yaw.input), 2, 14);
+	lcdPrint(String(Yaw.setpoint), 3, 14);
+	lcdPrint(String(Yaw.output), 4, 14);
 
 	lcdPrint(String((char)223), 2, 20);
 	lcdPrint(String((char)223), 3, 20);
-
 
 	// change altitude set-point if new value given
 	if (Serial.available() > 0) {
@@ -152,13 +162,13 @@ int assignSerialInput(String serialInput) {
 
 	switch (serialInputIdentifier) {
 		case('a') :
-			pidAltitudeSetpoint = serialInputValue; break;
+			Altitude.setpoint = serialInputValue; break;
 		case('A') :
-			pidAltitudeOutput = serialInputValue; break;
+			Altitude.output = serialInputValue; break;
 		case('y') :
-			pidYawSetpoint = serialInputValue; break;
+			Yaw.setpoint = serialInputValue; break;
 		case('Y') :
-			pidYawOutput = serialInputValue; break;
+			Yaw.output = serialInputValue; break;
 		default:
 			Serial.println("ERROR: Unknown identifier.");
 			return -1;
@@ -197,16 +207,16 @@ void doEncoderA() {
 	if (digitalRead(YAW_INPUT_PIN_1) == HIGH) {
 
 		if (digitalRead(YAW_INPUT_PIN_2) == LOW) 
-			rawYaw = rawYaw + 1;         
+			Yaw.rawInput = Yaw.rawInput + 1;         
 		else 
-			rawYaw = rawYaw - 1;         
+			Yaw.rawInput = Yaw.rawInput - 1;         
 	}
 	else                                      
 	{
 		if (digitalRead(YAW_INPUT_PIN_2) == HIGH) 
-			rawYaw = rawYaw + 1;          		
+			Yaw.rawInput = Yaw.rawInput + 1;          		
 		else 
-			rawYaw = rawYaw - 1;          
+			Yaw.rawInput = Yaw.rawInput - 1;          
 	}
 }
 
@@ -215,16 +225,16 @@ void doEncoderB() {
 	if (digitalRead(YAW_INPUT_PIN_2) == HIGH) {
 
 		if (digitalRead(YAW_INPUT_PIN_1) == HIGH) 
-			rawYaw = rawYaw + 1;        
+			Yaw.rawInput = Yaw.rawInput + 1;        
 		else 
-			rawYaw = rawYaw - 1;        
+			Yaw.rawInput = Yaw.rawInput - 1;        
 	}
 	else {
 
 		if (digitalRead(YAW_INPUT_PIN_1) == LOW) 
-			rawYaw = rawYaw + 1;          
+			Yaw.rawInput = Yaw.rawInput + 1;          
 		else 
-			rawYaw = rawYaw - 1;         
+			Yaw.rawInput = Yaw.rawInput - 1;         
 	}
 
 }
