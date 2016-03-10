@@ -18,7 +18,18 @@ double pidYawSetpoint,
 	pidYawInput,
 	pidYawOutput;
 
-volatile int raw_yaw = 0;
+class ControlDirection {
+public:
+	double pidSetpoint;
+	double pidInput;
+	double pidOutput;
+	double rawInput;
+	PID pid;
+private:
+
+};
+
+volatile int rawYaw = 0;
 
 PID altitudePID(
 	&pidAltitudeInput,     /* actual value */
@@ -71,43 +82,34 @@ void setup()
 	pidYawSetpoint = abs(MAX_YAW_READING - MIN_YAW_READING) / 2.0;
 	*/
 
+	double initial_raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
+
+	
+	// hackery alert: set minimum value to the current position and the maximum value the diffe 200 plus that
+	MIN_ALTITUDE_READING = initial_raw_altitude;
+	MAX_ALTITUDE_READING = initial_raw_altitude - 200;
+
 	// set setpoints to current positions until specified
 	pidAltitudeSetpoint = scaleValue(
-		analogRead(ALTITUDE_INPUT_PIN), 
+		initial_raw_altitude,
 		MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
 
+
 	pidYawSetpoint = scaleValue(
-		raw_yaw, 
+		rawYaw, 
 		MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
 
 
 }
 
-bool first = true;
-
 void loop()
 {
-	// hackery alert. 
-	// The inital output is set to the minimum output limit
-	// at first, that's fine with the altitude motor because it 
-	// goes only in one direction,  so we set it the lower limit
-	// to not moving because it only needs to move one direction
+	// current position values scaled between 0-255
+	pidAltitudeInput = scaleValue(analogRead(ALTITUDE_INPUT_PIN), 
+		MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
 
-	// the yaw needs to move two directions, so the lower limit needs to be the
-	// maximum velocity in the negative direction so upon startup that's what it
-	// does, not good. So what we do is we originally set the minimum to be not moving,
-	// then after that's what the initalized, we reduce the lower output limit
-	if (first) {
-		yawPID.SetOutputLimits(160, MAX_YAW_OUTPUT);
-		first = false;
-	}
-
-	// set-point driven w/ PID
-	double raw_altitude = analogRead(ALTITUDE_INPUT_PIN);
-
-	// current altitude scaled between 0-255
-	pidAltitudeInput = scaleValue(raw_altitude, MIN_ALTITUDE_READING, MAX_ALTITUDE_READING, 0.0, 255.0);
-	pidYawInput = scaleValue(raw_yaw, MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
+	pidYawInput = scaleValue(rawYaw, 
+		MIN_YAW_READING, MAX_YAW_READING, 0.0, 255.0);
 
 	altitudePID.Compute();
 	yawPID.Compute();
@@ -115,34 +117,21 @@ void loop()
 	analogWrite(ALTITUDE_OUTPUT_PIN, pidAltitudeOutput);
 	analogWrite(YAW_OUTPUT_PIN, pidYawOutput);
 
-	Serial.print("Altitude I\\S\\O:\t");
-	Serial.print(raw_altitude);
-	Serial.print("\\");
-	Serial.print(pidAltitudeInput);
-	Serial.print("\\");
-	Serial.print(pidAltitudeSetpoint);
-	Serial.print("\\");
-	Serial.print(pidAltitudeOutput);
+	lcdPrint("   Altitude  Yaw", 1, 1);
+	lcdPrint("I: ", 2, 1);
+	lcdPrint("S: ", 3, 1);
+	lcdPrint("O: ", 4, 1);
 
-	Serial.print("\tYaw I\\S\\O:\t");
-	Serial.print(pidYawInput);
-	Serial.print("\\");
-	Serial.print(pidYawSetpoint);
-	Serial.print("\\");
-	Serial.print(pidYawOutput);
-	
-	Serial.print("\n\r");
+	lcdPrint(String(pidAltitudeInput), 2, 4);
+	lcdPrint(String(pidAltitudeSetpoint), 3, 4);
+	lcdPrint(String(pidAltitudeOutput), 4, 4);
 
-	lcd.setCursor(0, 0); 
-	lcd.print("   Altitude  Yaw");
-	lcdPrint("I: ", pidAltitudeInput, 2, 1);
-	lcdPrint("S: ", pidAltitudeSetpoint, 3, 1);
-	lcdPrint("O: ", pidAltitudeOutput, 4, 1);
+	lcdPrint(String(scaleValue(pidYawInput, -200, 200, 0, 360)), 2, 14);
+	lcdPrint(String(pidYawSetpoint), 3, 14);
+	lcdPrint(String(pidYawOutput), 4, 14);
 
-	lcdPrint("", pidYawInput, 2, 14);
-	lcdPrint("", pidYawSetpoint, 3, 14);
-	lcdPrint("", pidYawOutput, 4, 14);
-
+	lcdPrint(String((char)223), 2, 20);
+	lcdPrint(String((char)223), 3, 20);
 
 
 	// change altitude set-point if new value given
@@ -183,9 +172,9 @@ int assignSerialInput(String serialInput) {
 	return 0;
 }
 
-void lcdPrint(String label, double value, int row, int column) {
-	lcd.setCursor(column - 1, row - 1); // -1 so we can use natural numbers
-	lcd.print(label + value); //label.concat(value));
+void lcdPrint(String value, int row, int column) {
+	lcd.setCursor(column - 1, row - 1); // -1 so we can use natural numbers 
+	lcd.print(value);
 }
 
 double scaleValue(double input, double minimum, double maximum, double output_min, double output_max) {
@@ -204,19 +193,20 @@ bool buttonPressed(int pin) {
 
 void doEncoderA() {
 
+
 	if (digitalRead(YAW_INPUT_PIN_1) == HIGH) {
 
 		if (digitalRead(YAW_INPUT_PIN_2) == LOW) 
-			raw_yaw = raw_yaw + 1;         
+			rawYaw = rawYaw + 1;         
 		else 
-			raw_yaw = raw_yaw - 1;         
+			rawYaw = rawYaw - 1;         
 	}
 	else                                      
 	{
 		if (digitalRead(YAW_INPUT_PIN_2) == HIGH) 
-			raw_yaw = raw_yaw + 1;          		
+			rawYaw = rawYaw + 1;          		
 		else 
-			raw_yaw = raw_yaw - 1;          
+			rawYaw = rawYaw - 1;          
 	}
 }
 
@@ -225,16 +215,16 @@ void doEncoderB() {
 	if (digitalRead(YAW_INPUT_PIN_2) == HIGH) {
 
 		if (digitalRead(YAW_INPUT_PIN_1) == HIGH) 
-			raw_yaw = raw_yaw + 1;        
+			rawYaw = rawYaw + 1;        
 		else 
-			raw_yaw = raw_yaw - 1;        
+			rawYaw = rawYaw - 1;        
 	}
 	else {
 
 		if (digitalRead(YAW_INPUT_PIN_1) == LOW) 
-			raw_yaw = raw_yaw + 1;          
+			rawYaw = rawYaw + 1;          
 		else 
-			raw_yaw = raw_yaw - 1;         
+			rawYaw = rawYaw - 1;         
 	}
 
 }
