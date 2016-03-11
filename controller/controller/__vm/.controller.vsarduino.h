@@ -86,6 +86,6 @@ extern "C" void __cxa_pure_virtual() {;}
 #define portModeRegister(P)
 #include <..\controller\controller.ino>
 #include <..\controller\Definitions.h>
-#include <..\controller\PID_v1.cpp>
-#include <..\controller\PID_v1.h>
+#include <..\controller\PID_v1_trimmed.cpp>
+#include <..\controller\PID_v1_trimmed.h>
 #endif

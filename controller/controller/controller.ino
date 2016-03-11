@@ -7,7 +7,7 @@
 */
 
 #include <LiquidCrystal.h>
-#include <PID_v1.h>
+#include <PID_v1_trimmed.h>
 #include <Definitions.h>
 
 
@@ -32,11 +32,11 @@ public:
 	double KI;
 	double KD;
 
-	void setPid(double kp, double ki, double kd ) {
+	void setPidGains(double kp, double ki, double kd ) {
 		KP = kp;
 		KI = ki;
 		KD = kd;
-	}
+	};
 };
 
 ControlDirection Yaw, Altitude;
@@ -78,30 +78,28 @@ void setup()
 	//----------- configure PID values ----------- //
 
 	// 255   = 100% duty cycle, 1/490Hz    -> 2.041ms T - fastest
-	// 127.5 = 50%  duty cycle, 0.75/490Hz -> 1.531ms T - almost 0
+	// 127.5 = 75%  duty cycle, 0.75/490Hz -> 1.531ms T - almost 0
 	// we give it 200 and 250 so it will never go in reverse and 
 	// won't go full-speed ahead
 
 	// YAW
-	Yaw.setPid(0.005, 0.009, 0.005);
+	//Yaw.setPidGains(0.005, 0.005, 0.005);
 	Yaw.maxOutput = 250;
 	Yaw.minOutput = 155;
 	Yaw.minInput = 200;
 	Yaw.maxInput = -200;
 	YawPid.SetOutputLimits(Yaw.minOutput, Yaw.maxOutput);
 	YawPid.SetMode(AUTOMATIC);
-
 	// set setpoint to 0 (current position)
 	Yaw.setpoint = scaleValue(0, Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
 
 	// ALTITUDE
-	Altitude.setPid(0.100, 0.050, 0.200);
+	//Altitude.setPidGains(0.100, 0.050, 0.200);
 	Altitude.maxOutput = 254;  
 	Altitude.minOutput = 180; // Altitude should never go backwards
 	Altitude.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 	Altitude.minInput = Altitude.rawInput; // to prevent wander, set minimum to 0 
 	Altitude.maxInput = Altitude.rawInput - ALTITUDE_RANGE; // and maximum to 200 points difference
-
 	AltitudePid.SetOutputLimits(Altitude.minOutput, Altitude.maxOutput);
 	AltitudePid.SetMode(AUTOMATIC);
 
@@ -113,8 +111,9 @@ void setup()
 
 void loop()
 {
+	Altitude.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 	// current position values from potentiometer scaled between 0-255
-	Altitude.input = scaleValue(analogRead(ALTITUDE_INPUT_PIN), 
+	Altitude.input = scaleValue(Altitude.rawInput, 
 		Altitude.minInput, Altitude.maxInput, 0.0, 255.0);
 
 	// current position value from encoder's interupt counter
@@ -200,7 +199,6 @@ bool buttonPressed(int pin) {
 	return buttonState == HIGH;
 }
 
-
 void doEncoderA() {
 
 
@@ -238,3 +236,9 @@ void doEncoderB() {
 	}
 
 }
+
+void risingState() {
+
+}
+
+

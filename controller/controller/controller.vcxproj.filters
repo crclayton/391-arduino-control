@@ -21,15 +21,15 @@
     <ClInclude Include="__vm\.controller.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PID_v1.h">
+    <ClInclude Include="Definitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Definitions.h">
+    <ClInclude Include="PID_v1_trimmed.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PID_v1.cpp">
+    <ClCompile Include="PID_v1_trimmed.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

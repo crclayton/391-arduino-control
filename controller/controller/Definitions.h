@@ -24,20 +24,14 @@
 // changed on the fly through the serial port
 
 // altitude
-double P_A = 0.005;
-double I_A = 0.009;
-double D_A = 0.005; //small because we have small resolution (200 samples)
+#define P_A		0.005
+#define I_A		0.009
+#define D_A		0.005 //small because we have small resolution (200 samples)
 
 // yaw
-double P_Y = 0.100;
-double I_Y = 0.050;
-double D_Y = 0.200;
-
-double MIN_ALTITUDE_READING = 623.0;
-double MAX_ALTITUDE_READING = 480.0;
-
-#define MIN_YAW_READING					200
-#define MAX_YAW_READING					-200
+#define P_Y		0.100
+#define I_Y		0.050
+#define D_Y		0.210
 
 #define ALTITUDE_INPUT_PIN				1
 #define ALTITUDE_OUTPUT_PIN				9
