@@ -10,7 +10,6 @@
 #include <PID_v1_trimmed.h>
 #include <Definitions.h>
 
-
 class ControlDirection {
 public:
 	double setpoint;
@@ -31,6 +30,9 @@ public:
 	double KP;
 	double KI;
 	double KD;
+
+	long unsigned int errorTotal;
+	double sampleRecord[NUMBER_OF_SAMPLES_RECORDED];
 
 	void setPidGains(double kp, double ki, double kd ) {
 		KP = kp;
@@ -57,6 +59,13 @@ PID YawPid(
 	&Yaw.setpoint,  
 	P_Y, I_Y, D_Y, DIRECT);
 
+long unsigned int errorSum = 0;
+int sampleNumber = 0;
+
+double startingGains = 0.01;
+int iterationsPerGain = 5;
+double incrementBy = 0.01;
+int trialIteration = 0;
 
 void setup()
 {
@@ -111,6 +120,7 @@ void setup()
 
 void loop()
 {
+
 	Altitude.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 	// current position values from potentiometer scaled between 0-255
 	Altitude.input = scaleValue(Altitude.rawInput, 
@@ -126,6 +136,50 @@ void loop()
 
 	analogWrite(ALTITUDE_OUTPUT_PIN, Altitude.output);
 	analogWrite(YAW_OUTPUT_PIN, Yaw.output);
+
+	Yaw.sampleRecord[sampleNumber] = Yaw.input;
+	Altitude.sampleRecord[sampleNumber] = Altitude.input;
+
+	Yaw.errorTotal += abs(Yaw.input - Yaw.setpoint);
+	Altitude.errorTotal += abs(Altitude.input - Altitude.setpoint);
+
+	// every 100 samples check if the last 100 samples have all -
+	// been within the tolerance of the setpoint
+	if (sampleNumber > 100) {
+		sampleNumber = 0;
+
+		// !!!TODO: don't forget timeout condition in case system goes unstable!!!
+		/* -------------------------------------------------------------------- */
+
+		if (eachSampleWithinTolerance(Yaw.sampleRecord, 100, Yaw.setpoint, 0.10)) {
+
+			// if they have, print the gains and the total error, 
+			// then set a new setpoint and change the gains
+			Serial.println(
+				String(Yaw.KP) + "," + String(Yaw.KI) + "," + 
+				String(Yaw.KD) + ":" + String(errorSum));
+
+			Yaw.setpoint = Yaw.setpoint + YAW_TRIAL_OFFSET;
+			errorSum = 0;
+
+
+			// this is to iterate through three variables using only one loop
+			if (trialIteration % iterationsPerGain == 0) {
+				Yaw.KI += incrementBy;
+				Yaw.KD = startingGains;
+			}
+
+			if (trialIteration % iterationsPerGain^2 == 0) {
+				Yaw.KP += incrementBy;
+				Yaw.KI = startingGains + incrementBy;
+			}
+			Yaw.KD += incrementBy;
+			trialIteration += 1;
+		}
+	}
+	else {
+		sampleNumber++;
+	}
 
 	lcdPrint("   Altitude  Yaw", 1, 1);
 	lcdPrint("I: ", 2, 1);
@@ -143,7 +197,7 @@ void loop()
 	lcdPrint(String((char)223), 2, 20);
 	lcdPrint(String((char)223), 3, 20);
 
-	// change altitude set-point if new value given
+
 	if (Serial.available() > 0) {
 		assignSerialInput(Serial.readString());
 	}
@@ -197,6 +251,21 @@ double percentDifference(double input, double setpoint) {
 bool buttonPressed(int pin) {
 	int buttonState = digitalRead(pin);
 	return buttonState == HIGH;
+}
+
+
+bool withinTolerance(double actual, double desired, double tolerancePercent) {
+	return abs(desired - actual) <= tolerancePercent;
+}
+
+
+// instead of checking every sample should we average the samples and check against that?
+bool eachSampleWithinTolerance(double samples[], int numberOfSamples, double desired, double tolerancePercent) {
+	for (int i = 0; i < 100; i++) {
+		if (!withinTolerance(samples[i], desired, tolerancePercent))
+			return false;
+	}
+	return true;
 }
 
 void doEncoderA() {
