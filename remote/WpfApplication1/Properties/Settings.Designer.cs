@@ -94,5 +94,101 @@ namespace WpfApplication1.Properties {
                 this["YawKI"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("COM5")]
+        public string ComPort {
+            get {
+                return ((string)(this["ComPort"]));
+            }
+            set {
+                this["ComPort"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("9600")]
+        public int BaudRate {
+            get {
+                return ((int)(this["BaudRate"]));
+            }
+            set {
+                this["BaudRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double YawFrom {
+            get {
+                return ((double)(this["YawFrom"]));
+            }
+            set {
+                this["YawFrom"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public double YawTo {
+            get {
+                return ((double)(this["YawTo"]));
+            }
+            set {
+                this["YawTo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.2")]
+        public double YawBy {
+            get {
+                return ((double)(this["YawBy"]));
+            }
+            set {
+                this["YawBy"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double LiftFrom {
+            get {
+                return ((double)(this["LiftFrom"]));
+            }
+            set {
+                this["LiftFrom"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public double LiftTo {
+            get {
+                return ((double)(this["LiftTo"]));
+            }
+            set {
+                this["LiftTo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.2")]
+        public double LiftBy {
+            get {
+                return ((double)(this["LiftBy"]));
+            }
+            set {
+                this["LiftBy"] = value;
+            }
+        }
     }
 }
