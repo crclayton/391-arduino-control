@@ -11,6 +11,7 @@
                       Background="{DynamicResource GrayBrush8}"
                       TitleCaps="False"
         Typography.Capitals="SmallCaps"
+                      
         Title="Team A2 Remote Control" Height="350" Width="525">
     <Grid >
 

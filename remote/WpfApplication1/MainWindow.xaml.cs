@@ -42,6 +42,7 @@ namespace WpfApplication1
     /// </summary>
     public partial class MainWindow 
     {
+        Settings settings = Properties.Settings.Default;
 
         //todo these should be settings!!
         const int SECONDS_TO_TIMEOUT = 10;
@@ -51,9 +52,9 @@ namespace WpfApplication1
         List<Trial> trials = new List<Trial>();
         SerialPort port = new SerialPort(COM_PORT, BAUD_RATE, Parity.None, 8, StopBits.One);
 
-        double currentPosition;
-        double currentError;
-        double currentOutput;
+        List<double> recordedPosition;
+        List<double> recordedError;
+        List<double> recordedOutput;
         double currentSetpoint;
         double totalError;
 
@@ -74,9 +75,9 @@ namespace WpfApplication1
             List<string> serialIn = data.Split(' ').ToList();
 
             double pos, err, output;
-            if (double.TryParse(serialIn[0], out pos))      currentPosition = pos;
-            if (double.TryParse(serialIn[1], out err))      currentError = err;
-            if (double.TryParse(serialIn[2], out output))   currentOutput = output; ;
+            if (double.TryParse(serialIn[0], out pos))      recordedPosition.Add(pos);
+            if (double.TryParse(serialIn[1], out err))      recordedError.Add(err);
+            if (double.TryParse(serialIn[2], out output))   recordedOutput.Add(output);
 
        }
 
@@ -99,7 +100,7 @@ namespace WpfApplication1
                     break;
                 }
 
-                totalError += currentError;
+                totalError += recordedError.Last();
             }
 
             Trial t = new Trial
@@ -130,19 +131,18 @@ namespace WpfApplication1
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            Properties.Settings.Default.Save();
+            settings.Save();
             port.Close();
             base.OnClosing(e);
         }
 
         private void TrialBeginButton_Click(object sender, RoutedEventArgs e)
         {
-
             currentSetpoint = 0;
 
-            for (double kp = Properties.Settings.Default.YawFrom; kp <= Properties.Settings.Default.YawTo; kp = kp + Properties.Settings.Default.YawBy)
-                for (double ki = Properties.Settings.Default.YawFrom; ki <= Properties.Settings.Default.YawTo; ki = ki + Properties.Settings.Default.YawBy)
-                    for (double kd = Properties.Settings.Default.YawFrom; kd <= Properties.Settings.Default.YawTo; kd = kp + Properties.Settings.Default.YawBy)
+            for (double kp = settings.YawFrom; kp <= settings.YawTo; kp = kp + settings.YawBy)
+                for (double ki = settings.YawFrom; ki <= settings.YawTo; ki = ki + settings.YawBy)
+                    for (double kd = settings.YawFrom; kd <= settings.YawTo; kd = kp + settings.YawBy)
                     {
                         Trial newTrial = trial(kp, ki, kd, currentSetpoint);
                         trials.Add(newTrial);
