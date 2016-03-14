@@ -77,8 +77,8 @@ void setup()
 	pinMode(YAW_INPUT_PIN_1, INPUT);
 	pinMode(YAW_INPUT_PIN_2, INPUT);
 
-	attachInterrupt(0, doEncoderA, CHANGE);
-	attachInterrupt(1, doEncoderB, CHANGE);
+	attachInterrupt(0, encoderInteruptLineA, CHANGE);
+	attachInterrupt(1, encoderInteruptLineB, CHANGE);
 
 	// configure serial and LCD
 	Serial.begin(9600);
@@ -122,6 +122,7 @@ void loop()
 {
 
 	Altitude.rawInput = analogRead(ALTITUDE_INPUT_PIN);
+
 	// current position values from potentiometer scaled between 0-255
 	Altitude.input = scaleValue(Altitude.rawInput, 
 		Altitude.minInput, Altitude.maxInput, 0.0, 255.0);
@@ -130,31 +131,58 @@ void loop()
 	Yaw.input = scaleValue(Yaw.rawInput, 
 		Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
 
-	// TODO: re-write pid library getting rid of excess junk
+	// calculate new outputs
 	AltitudePid.Compute();
 	YawPid.Compute();
 
+	// update output 
 	analogWrite(ALTITUDE_OUTPUT_PIN, Altitude.output);
 	analogWrite(YAW_OUTPUT_PIN, Yaw.output);
 
+	// display all values using LCD 
+	lcdPrint("   Altitude  Yaw", 1, 1);
+	lcdPrint("I: ", 2, 1);
+	lcdPrint("S: ", 3, 1);
+	lcdPrint("O: ", 4, 1);
+
+	lcdPrint(String(Altitude.input), 2, 4);
+	lcdPrint(String(Altitude.setpoint), 3, 4);
+	lcdPrint(String(Altitude.output), 4, 4);
+
+	lcdPrint(String(Yaw.input), 2, 14);
+	lcdPrint(String(Yaw.setpoint), 3, 14);
+	lcdPrint(String(Yaw.output), 4, 14);
+
+	lcdPrint(String((char)223), 2, 20);
+	lcdPrint(String((char)223), 3, 20);
+
+	// if serial input provided, assign to correct value 
+	if (Serial.available() > 0) {
+		assignSerialInput(Serial.readString());
+	}
+
+	// ------------------------------------------------//
+	// --------  PID gain experiment trials ---------- //
+	// ------------------------------------------------//
+
+	// update sample record with new input
 	Yaw.sampleRecord[sampleNumber] = Yaw.input;
 	Altitude.sampleRecord[sampleNumber] = Altitude.input;
 
+	// update error sum with new error
 	Yaw.errorTotal += abs(Yaw.input - Yaw.setpoint);
 	Altitude.errorTotal += abs(Altitude.input - Altitude.setpoint);
 
-	// every 100 samples check if the last 100 samples have all -
+	// every 100 samples check if the last 100 samples have all
 	// been within the tolerance of the setpoint
 	if (sampleNumber > 100) {
 		sampleNumber = 0;
 
-		// !!!TODO: don't forget timeout condition in case system goes unstable!!!
-		/* -------------------------------------------------------------------- */
-
-		if (eachSampleWithinTolerance(Yaw.sampleRecord, 100, Yaw.setpoint, 0.10)) {
+		// TODO: include timeout condition in case system goes unstable
+		if (eachSampleWithinTolerance(Yaw.sampleRecord, 100, Yaw.setpoint, 0.10) || trialHasTimedOut()) {
 
 			// if they have, print the gains and the total error, 
-			// then set a new setpoint and change the gains
+			// then update the setpoint and change the gains
 			Serial.println(
 				String(Yaw.KP) + "," + String(Yaw.KI) + "," + 
 				String(Yaw.KD) + ":" + String(errorSum));
@@ -162,8 +190,7 @@ void loop()
 			Yaw.setpoint = Yaw.setpoint + YAW_TRIAL_OFFSET;
 			errorSum = 0;
 
-
-			// this is to iterate through three variables using only one loop
+			// the following code is to iterate through three variables using only one loop
 			if (trialIteration % iterationsPerGain == 0) {
 				Yaw.KI += incrementBy;
 				Yaw.KD = startingGains;
@@ -181,32 +208,12 @@ void loop()
 		sampleNumber++;
 	}
 
-	lcdPrint("   Altitude  Yaw", 1, 1);
-	lcdPrint("I: ", 2, 1);
-	lcdPrint("S: ", 3, 1);
-	lcdPrint("O: ", 4, 1);
-
-	lcdPrint(String(Altitude.input), 2, 4);
-	lcdPrint(String(Altitude.setpoint), 3, 4);
-	lcdPrint(String(Altitude.output), 4, 4);
-
-	lcdPrint(String(Yaw.input), 2, 14);
-	lcdPrint(String(Yaw.setpoint), 3, 14);
-	lcdPrint(String(Yaw.output), 4, 14);
-
-	lcdPrint(String((char)223), 2, 20);
-	lcdPrint(String((char)223), 3, 20);
-
-
-	if (Serial.available() > 0) {
-		assignSerialInput(Serial.readString());
-	}
 }						  
 
 int assignSerialInput(String serialInput) {
 
 	if (serialInput[0] != '-') {
-		Serial.println("ERROR: Expecting identifier. Ex: '-P 0.005' or '-s 150'");
+		Serial.println("ERROR: Expecting identifier. Ex: '-y 0.005' or '-A 150'");
 		return -1;
 	}
 
@@ -253,11 +260,9 @@ bool buttonPressed(int pin) {
 	return buttonState == HIGH;
 }
 
-
 bool withinTolerance(double actual, double desired, double tolerancePercent) {
 	return abs(desired - actual) <= tolerancePercent;
 }
-
 
 // instead of checking every sample should we average the samples and check against that?
 bool eachSampleWithinTolerance(double samples[], int numberOfSamples, double desired, double tolerancePercent) {
@@ -268,7 +273,12 @@ bool eachSampleWithinTolerance(double samples[], int numberOfSamples, double des
 	return true;
 }
 
-void doEncoderA() {
+bool trialHasTimedOut() {
+	//todo:
+	return false;
+}
+
+void encoderInteruptLineA() {
 
 
 	if (digitalRead(YAW_INPUT_PIN_1) == HIGH) {
@@ -287,7 +297,7 @@ void doEncoderA() {
 	}
 }
 
-void doEncoderB() {
+void encoderInteruptLineB() {
 
 	if (digitalRead(YAW_INPUT_PIN_2) == HIGH) {
 
@@ -305,9 +315,3 @@ void doEncoderB() {
 	}
 
 }
-
-void risingState() {
-
-}
-
-

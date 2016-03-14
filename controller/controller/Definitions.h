@@ -3,26 +3,6 @@
 #ifndef _DEFS_h
 #define _DEFS_h
 
-
-/*	
-	Altitude motor:
-		Around 180 is spinning but not fast enough to lift it
-		Around 210 is spinning at hovering
-
-	Yaw motor:
-		180 not moving
-		190 moving clockwise (backwards)
-
-
-
-*/
-
-
-
-
-// these are not constants because they can be 
-// changed on the fly through the serial port
-
 // altitude
 #define P_A		0.005
 #define I_A		0.009
