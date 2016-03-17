@@ -190,5 +190,41 @@ namespace WpfApplication1.Properties {
                 this["LiftBy"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int Samples {
+            get {
+                return ((int)(this["Samples"]));
+            }
+            set {
+                this["Samples"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.1")]
+        public double Tolerance {
+            get {
+                return ((double)(this["Tolerance"]));
+            }
+            set {
+                this["Tolerance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int TimeoutSeconds {
+            get {
+                return ((int)(this["TimeoutSeconds"]));
+            }
+            set {
+                this["TimeoutSeconds"] = value;
+            }
+        }
     }
 }

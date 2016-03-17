@@ -3,15 +3,6 @@
 #ifndef _DEFS_h
 #define _DEFS_h
 
-// altitude
-#define P_A		0.005
-#define I_A		0.009
-#define D_A		0.005 //small because we have small resolution (200 samples)
-
-// yaw
-#define P_Y		0.100
-#define I_Y		0.050
-#define D_Y		0.210
 
 #define ALTITUDE_INPUT_PIN				1
 #define ALTITUDE_OUTPUT_PIN				9

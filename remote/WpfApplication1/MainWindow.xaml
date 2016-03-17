@@ -9,11 +9,29 @@
         xmlns:p="clr-namespace:WpfApplication1.Properties"
         Icon="icon2.png"
                       Background="{DynamicResource GrayBrush8}"
+                      DataContext="{Binding RelativeSource={RelativeSource Self}}"
                       TitleCaps="False"
         Typography.Capitals="SmallCaps"
-                      
         Title="Team A2 Remote Control" Height="350" Width="525">
-    <Grid >
+    <Controls:MetroWindow.RightWindowCommands>
+        <Controls:WindowCommands>
+
+            <Button
+                Click="OpenConnection_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="2"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource BlackBrush}"
+                               Text="connect" />
+                </StackPanel>
+            </Button>
+            </Controls:WindowCommands>
+     </Controls:MetroWindow.RightWindowCommands>
+                   
+                
+            <Grid >
 
         <TabControl Background="{DynamicResource WhiteBrush}"
                     BorderBrush="{DynamicResource AccentColorBrush}"
@@ -47,10 +65,10 @@
                     <TextBlock FontWeight="Bold" FontSize="14" Grid.Column="0" Grid.Row="5" VerticalAlignment="Center">PID Gains</TextBlock>
 
                     <Controls:ToggleSwitch Name="YawOutputMode" FontSize="11" FontWeight="Light" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Maximum="255" Minimum="150" Value="{Binding currentOutput}" IsEnabled="{Binding ElementName=YawOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Maximum="255" Minimum="150"  Value="{Binding currentOutput}" IsEnabled="{Binding ElementName=YawOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
-                    <Controls:ToggleSwitch Name="YawTargetMode"  FontSize="11" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Value="{Binding currentSetpoint}" IsEnabled="{Binding ElementName=YawTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:ToggleSwitch Name="YawTargetMode" IsChecked="True" FontSize="11" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
+                    <Controls:NumericUpDown Interval="10" Value="{Binding currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=YawTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKP, Mode=TwoWay}" Height="13" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.01" Speedup="True"></Controls:NumericUpDown>
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKI, Mode=TwoWay}" Height="13" Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
@@ -147,7 +165,11 @@
 
                 <TextBlock Grid.Column="0" Grid.Row="1" VerticalAlignment="Center">Baud Rate</TextBlock>
                 <TextBox Grid.Column="1" Grid.Row="1"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=BaudRate, Mode=TwoWay}"/>
-                    </Grid>
+
+
+                    <TextBlock Grid.Column="0" Grid.Row="2" VerticalAlignment="Center">Timeout Seconds</TextBlock>
+                    <TextBox Grid.Column="1" Grid.Row="2"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=TimeoutSeconds, Mode=TwoWay}"/>
+                </Grid>
             </TabItem>
         </TabControl>
         

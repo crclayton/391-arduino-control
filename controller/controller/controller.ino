@@ -51,21 +51,14 @@ PID AltitudePid(
 	&Altitude.input,     /* actual value */
 	&Altitude.output,    /* modification value, 0-255 */
 	&Altitude.setpoint,  /* desired value */
-	P_A, I_A, D_A, DIRECT);
+	0, 0, 0, DIRECT);
 
 PID YawPid(
 	&Yaw.input,     
 	&Yaw.output,    
 	&Yaw.setpoint,  
-	P_Y, I_Y, D_Y, DIRECT);
+	0, 0, 0, DIRECT);
 
-long unsigned int errorSum = 0;
-int sampleNumber = 0;
-
-double startingGains = 0.01;
-int iterationsPerGain = 5;
-double incrementBy = 0.01;
-int trialIteration = 0;
 
 void setup()
 {
@@ -92,18 +85,20 @@ void setup()
 	// won't go full-speed ahead
 
 	// YAW
-	//Yaw.setPidGains(0.005, 0.005, 0.005);
+	Yaw.setPidGains(0.100, 0.050, 0.210); 
 	Yaw.maxOutput = 250;
 	Yaw.minOutput = 155;
 	Yaw.minInput = 200;
 	Yaw.maxInput = -200;
-	YawPid.SetOutputLimits(Yaw.minOutput, Yaw.maxOutput);
-	YawPid.SetMode(AUTOMATIC);
-	// set setpoint to 0 (current position)
 	Yaw.setpoint = scaleValue(0, Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
 
+	YawPid.SetOutputLimits(Yaw.minOutput, Yaw.maxOutput);
+	YawPid.SetMode(AUTOMATIC);
+	YawPid.SetTunings(Yaw.KP, Yaw.KI, Yaw.KD);
+	// set setpoint to 0 (current position)
+
 	// ALTITUDE
-	//Altitude.setPidGains(0.100, 0.050, 0.200);
+	Altitude.setPidGains(0.005, 0.009, 0.005);
 	Altitude.maxOutput = 254;  
 	Altitude.minOutput = 180; // Altitude should never go backwards
 	Altitude.rawInput = analogRead(ALTITUDE_INPUT_PIN);
@@ -111,6 +106,7 @@ void setup()
 	Altitude.maxInput = Altitude.rawInput - ALTITUDE_RANGE; // and maximum to 200 points difference
 	AltitudePid.SetOutputLimits(Altitude.minOutput, Altitude.maxOutput);
 	AltitudePid.SetMode(AUTOMATIC);
+	AltitudePid.SetTunings(Altitude.KP, Altitude.KI, Altitude.KD);
 
 	// set setpoints to current position until otherwise specified
 	Altitude.setpoint = scaleValue(Altitude.rawInput, 
@@ -140,14 +136,12 @@ void loop()
 	analogWrite(YAW_OUTPUT_PIN, Yaw.output);
 
 	// display all values using LCD 
-	lcdPrint("   Altitude  Yaw", 1, 1);
-	lcdPrint("I: ", 2, 1);
-	lcdPrint("S: ", 3, 1);
-	lcdPrint("O: ", 4, 1);
+	lcdPrint("   P/I/D     I/S/O", 1, 1);
 
-	lcdPrint(String(Altitude.input), 2, 4);
-	lcdPrint(String(Altitude.setpoint), 3, 4);
-	lcdPrint(String(Altitude.output), 4, 4);
+
+	lcdPrint(String(Yaw.KP), 2, 4);
+	lcdPrint(String(Yaw.KI), 3, 4);
+	lcdPrint(String(Yaw.KD), 4, 4);
 
 	lcdPrint(String(Yaw.input), 2, 14);
 	lcdPrint(String(Yaw.setpoint), 3, 14);
@@ -157,57 +151,13 @@ void loop()
 	lcdPrint(String((char)223), 3, 20);
 
 	// if serial input provided, assign to correct value 
+
+	// note: MUST read until line to recieve multiple messages
 	if (Serial.available() > 0) {
-		assignSerialInput(Serial.readString());
+		assignSerialInput(Serial.readStringUntil('\n'));
 	}
 
-	// ------------------------------------------------//
-	// --------  PID gain experiment trials ---------- //
-	// ------------------------------------------------//
-
-	// update sample record with new input
-	Yaw.sampleRecord[sampleNumber] = Yaw.input;
-	Altitude.sampleRecord[sampleNumber] = Altitude.input;
-
-	// update error sum with new error
-	Yaw.errorTotal += abs(Yaw.input - Yaw.setpoint);
-	Altitude.errorTotal += abs(Altitude.input - Altitude.setpoint);
-
-	// every 100 samples check if the last 100 samples have all
-	// been within the tolerance of the setpoint
-	if (sampleNumber > 100) {
-		sampleNumber = 0;
-
-		// TODO: include timeout condition in case system goes unstable
-		if (eachSampleWithinTolerance(Yaw.sampleRecord, 100, Yaw.setpoint, 0.10) || trialHasTimedOut()) {
-
-			// if they have, print the gains and the total error, 
-			// then update the setpoint and change the gains
-			Serial.println(
-				String(Yaw.KP) + "," + String(Yaw.KI) + "," + 
-				String(Yaw.KD) + ":" + String(errorSum));
-
-			Yaw.setpoint = Yaw.setpoint + YAW_TRIAL_OFFSET;
-			errorSum = 0;
-
-			// the following code is to iterate through three variables using only one loop
-			if (trialIteration % iterationsPerGain == 0) {
-				Yaw.KI += incrementBy;
-				Yaw.KD = startingGains;
-			}
-
-			if (trialIteration % iterationsPerGain^2 == 0) {
-				Yaw.KP += incrementBy;
-				Yaw.KI = startingGains + incrementBy;
-			}
-			Yaw.KD += incrementBy;
-			trialIteration += 1;
-		}
-	}
-	else {
-		sampleNumber++;
-	}
-
+	Serial.println(String(Yaw.input) + " " + abs(Yaw.setpoint - Yaw.input) + " " + Yaw.output + " " + Yaw.setpoint);
 }						  
 
 int assignSerialInput(String serialInput) {
@@ -223,15 +173,27 @@ int assignSerialInput(String serialInput) {
 	switch (serialInputIdentifier) {
 		case('a') :
 			Altitude.setpoint = serialInputValue; break;
+
+		/*
 		case('A') :
 			Altitude.output = serialInputValue; break;
-		case('y') :
-			Yaw.setpoint = serialInputValue; break;
-		case('Y') :
+		case('S') :
 			Yaw.output = serialInputValue; break;
+		*/
+
+		case('s') :
+			Yaw.setpoint = serialInputValue; break;
+		case('p') :
+			Yaw.KP = serialInputValue; break;
+		case('i') :
+			Yaw.KI = serialInputValue; break;
+		case('d') :
+			Yaw.KD = serialInputValue; break;
 		default:
 			Serial.println("ERROR: Unknown identifier.");
 			return -1;
+
+		YawPid.SetTunings(Yaw.KP, Yaw.KI, Yaw.KD);
 	}
 
 	Serial.print("SUCCESS: Value ");
@@ -260,23 +222,6 @@ bool buttonPressed(int pin) {
 	return buttonState == HIGH;
 }
 
-bool withinTolerance(double actual, double desired, double tolerancePercent) {
-	return abs(desired - actual) <= tolerancePercent;
-}
-
-// instead of checking every sample should we average the samples and check against that?
-bool eachSampleWithinTolerance(double samples[], int numberOfSamples, double desired, double tolerancePercent) {
-	for (int i = 0; i < 100; i++) {
-		if (!withinTolerance(samples[i], desired, tolerancePercent))
-			return false;
-	}
-	return true;
-}
-
-bool trialHasTimedOut() {
-	//todo:
-	return false;
-}
 
 void encoderInteruptLineA() {
 
