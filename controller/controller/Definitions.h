@@ -12,15 +12,6 @@
 #define YAW_OUTPUT_PIN					10
 
 #define ALTITUDE_RANGE					200
-#define NUMBER_OF_SAMPLES_RECORDED		100
-
-#define YAW_TRIAL_OFFSET				200
-
-#define YAW_KD_INCREMENT				0.01
-#define YAW_KI_INCREMENT				0.01
-#define YAW_KP_INCREMENT				0.01
-
-#define YAW_NUMBER_OF_ITERATIONS_EACH	3		
 
 #endif
 

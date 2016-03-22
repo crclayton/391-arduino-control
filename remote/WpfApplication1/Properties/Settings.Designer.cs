@@ -122,36 +122,36 @@ namespace WpfApplication1.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double YawFrom {
+        public double KPFrom {
             get {
-                return ((double)(this["YawFrom"]));
+                return ((double)(this["KPFrom"]));
             }
             set {
-                this["YawFrom"] = value;
+                this["KPFrom"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public double YawTo {
+        public double KPTo {
             get {
-                return ((double)(this["YawTo"]));
+                return ((double)(this["KPTo"]));
             }
             set {
-                this["YawTo"] = value;
+                this["KPTo"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0.2")]
-        public double YawBy {
+        public double KPBy {
             get {
-                return ((double)(this["YawBy"]));
+                return ((double)(this["KPBy"]));
             }
             set {
-                this["YawBy"] = value;
+                this["KPBy"] = value;
             }
         }
         
@@ -224,6 +224,138 @@ namespace WpfApplication1.Properties {
             }
             set {
                 this["TimeoutSeconds"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double KIFrom {
+            get {
+                return ((double)(this["KIFrom"]));
+            }
+            set {
+                this["KIFrom"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double KITo {
+            get {
+                return ((double)(this["KITo"]));
+            }
+            set {
+                this["KITo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
+        public double KIBy {
+            get {
+                return ((double)(this["KIBy"]));
+            }
+            set {
+                this["KIBy"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double KDFrom {
+            get {
+                return ((double)(this["KDFrom"]));
+            }
+            set {
+                this["KDFrom"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
+        public double KDBy {
+            get {
+                return ((double)(this["KDBy"]));
+            }
+            set {
+                this["KDBy"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public double KDTo {
+            get {
+                return ((double)(this["KDTo"]));
+            }
+            set {
+                this["KDTo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("50")]
+        public double SetpointOffset {
+            get {
+                return ((double)(this["SetpointOffset"]));
+            }
+            set {
+                this["SetpointOffset"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool InvertOffset {
+            get {
+                return ((bool)(this["InvertOffset"]));
+            }
+            set {
+                this["InvertOffset"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool portOverride {
+            get {
+                return ((bool)(this["portOverride"]));
+            }
+            set {
+                this["portOverride"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ReachedDestination {
+            get {
+                return ((bool)(this["ReachedDestination"]));
+            }
+            set {
+                this["ReachedDestination"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double AveragePosition {
+            get {
+                return ((double)(this["AveragePosition"]));
+            }
+            set {
+                this["AveragePosition"] = value;
             }
         }
     }

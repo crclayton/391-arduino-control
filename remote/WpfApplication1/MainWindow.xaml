@@ -3,8 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                                            xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
+
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
-        xmlns:local="clr-namespace:WpfApplication1"
+                      xmlns:local="clr-namespace:WpfApplication1"
                       WindowTitleBrush="{DynamicResource GrayBrush8}"
         xmlns:p="clr-namespace:WpfApplication1.Properties"
         Icon="icon2.png"
@@ -12,7 +14,7 @@
                       DataContext="{Binding RelativeSource={RelativeSource Self}}"
                       TitleCaps="False"
         Typography.Capitals="SmallCaps"
-        Title="Team A2 Remote Control" Height="350" Width="525">
+        Title="Super Turbo Ultramax Helicontroller Remote" Height="350" Width="525">
     <Controls:MetroWindow.RightWindowCommands>
         <Controls:WindowCommands>
 
@@ -27,7 +29,18 @@
                                Text="connect" />
                 </StackPanel>
             </Button>
-            </Controls:WindowCommands>
+            <Button 
+                Click="ManualSave_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="2"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource BlackBrush}"
+                               Text="save" />
+                </StackPanel>
+            </Button>
+        </Controls:WindowCommands>
      </Controls:MetroWindow.RightWindowCommands>
                    
                 
@@ -40,14 +53,14 @@
             <TabItem Name="YawTab" Header="Yaw" >
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="30"></RowDefinition>
+                        <RowDefinition Height="30"></RowDefinition>
+                        <RowDefinition Height="30"></RowDefinition>
+                        <RowDefinition Height="30"></RowDefinition>
+                        <RowDefinition Height="30"></RowDefinition>
+                        <RowDefinition Height="30"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
-                        <RowDefinition Height="*"></RowDefinition>
+                        <RowDefinition Height="40"></RowDefinition>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"></ColumnDefinition>
@@ -74,21 +87,37 @@
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKI, Mode=TwoWay}" Height="13" Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKD, Mode=TwoWay}" Height="13" Grid.Row="5" Grid.Column="3" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
 
-                    <TextBox Text="{Binding currentPosition}" IsEnabled="False" Name="YawPosition" Grid.Column="2" Grid.Row="0" Grid.ColumnSpan="2" VerticalAlignment="Center"></TextBox>
+                    <TextBox Text="{Binding currentPosition}" IsEnabled="False" Name="YawPosition" Grid.Column="2" Grid.Row="0"  VerticalAlignment="Center"></TextBox>
+                    <TextBox Text="{Binding averagePosition}" IsEnabled="False"  Grid.Column="3" Grid.Row="0"  VerticalAlignment="Center"></TextBox>
 
-                    <TextBox Text="{Binding currentError}" IsEnabled="False" Name="YawCurrentError" Grid.Column="2" Grid.Row="3" Grid.ColumnSpan="2" VerticalAlignment="Center"></TextBox>
+                    <TextBox Text="{Binding averagePercentError}" IsEnabled="False" Grid.Column="2" Grid.Row="3" VerticalAlignment="Center"></TextBox>
+                    <TextBox Text="{Binding currentError}" IsEnabled="False" Name="YawCurrentError" Grid.Column="3" Grid.Row="3" VerticalAlignment="Center"></TextBox>
                     <TextBox Text="{Binding runningError}" IsEnabled="False" Name="YawRunningError" Grid.Column="2" Grid.Row="4" Grid.ColumnSpan="2" VerticalAlignment="Center"></TextBox>
 
-                    <Button Name="ApplyYawSettings" Click="ApplyYawSettings_Click" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="4">Update</Button>
-                   
+                    
+                    <!-- chart here -->
+
+                    <oxy:Plot Grid.Row="6"
+                              Grid.Column="0" Grid.ColumnSpan="4" 
+                              Model="{Binding DataPlot}"/>
+
+
+                        <Button Name="ApplyYawSettings" Click="ApplyYawSettings_Click" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="4">Update</Button>
+                    <CheckBox IsEnabled="False" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=ReachedDestination, Mode=TwoWay}" Grid.Row="0" Grid.Column="1"></CheckBox>
+                    
+
+                    
+                    
                 </Grid>
             </TabItem>
             <TabItem Header="Lift" >
-                
             </TabItem>
 
+            <TabItem Header="Routines">
+
+            </TabItem>
             
-                <TabItem Header="Trials">
+            <TabItem Header="Trials">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition></ColumnDefinition>
@@ -105,35 +134,44 @@
                         <RowDefinition Height="30"></RowDefinition>
                         <RowDefinition Height="30"></RowDefinition>
                         <RowDefinition Height="30"></RowDefinition>
+                        <RowDefinition Height="30"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
 
                     </Grid.RowDefinitions>
                     
-                    <Button Name="TrialBeginButton" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Click="TrialBeginButton_Click">Begin Trials</Button>
-                    <Button Name="TrialEndButton" Grid.Row="3" Grid.Column="3" Grid.ColumnSpan="3" Click="TrialEndButton_Click">End Trials</Button>
+                    <Button Name="TrialBeginButton" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Click="TrialBeginButton_Click">Begin Trials</Button>
+                    <Button Name="TrialEndButton" Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="2" Click="TrialEndButton_Click">End Trials</Button>
 
-                    <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="14">Yaw</TextBlock>
-                    <TextBlock Grid.Row="0" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="14">Lift</TextBlock>
+                    <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">From</TextBlock>
+                    <TextBlock Grid.Row="0" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">To</TextBlock>
+                    <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center">By</TextBlock>
 
+                    <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">KP</TextBlock>
+                    <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">KI</TextBlock>
+                    <TextBlock Grid.Row="3" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">KD</TextBlock>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">From</TextBlock>
-                    <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">To</TextBlock>
-                    <TextBlock Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">By</TextBlock>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KPFrom, Mode=TwoWay}" Grid.Row="1" Grid.Column="1"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KPTo, Mode=TwoWay}" Grid.Row="1" Grid.Column="2"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KPBy, Mode=TwoWay}" Grid.Row="1" Grid.Column="3"></Controls:NumericUpDown>
 
-                    <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center">From</TextBlock>
-                    <TextBlock Grid.Row="1" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">To</TextBlock>
-                    <TextBlock Grid.Row="1" Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center">By</TextBlock>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KIFrom, Mode=TwoWay}" Grid.Row="2" Grid.Column="1"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KITo, Mode=TwoWay}" Grid.Row="2" Grid.Column="2"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KIBy, Mode=TwoWay}" Grid.Row="2" Grid.Column="3"></Controls:NumericUpDown>
 
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KDFrom, Mode=TwoWay}" Grid.Row="3" Grid.Column="1"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KDTo, Mode=TwoWay}" Grid.Row="3" Grid.Column="2"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="0.001" Minimum="0" Value="{Binding Source={x:Static p:Settings.Default}, Path=KDBy, Mode=TwoWay}" Grid.Row="3" Grid.Column="3"></Controls:NumericUpDown>
 
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawFrom, Mode=TwoWay}" Grid.Row="2" Grid.Column="0"></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawTo, Mode=TwoWay}" Grid.Row="2" Grid.Column="1"></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawBy, Mode=TwoWay}" Grid.Row="2" Grid.Column="2"></Controls:NumericUpDown>
+                    <TextBlock Grid.Row="1" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">Timeout</TextBlock>
+                    <TextBox  Text="{Binding Source={x:Static p:Settings.Default}, Path=TimeoutSeconds, Mode=TwoWay}" Grid.Row="1" Grid.Column="5" HorizontalAlignment="Stretch" VerticalAlignment="Center"></TextBox>
 
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftFrom, Mode=TwoWay}" Grid.Row="2" Grid.Column="3"></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftTo, Mode=TwoWay}" Grid.Row="2" Grid.Column="4"></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftBy, Mode=TwoWay}" Grid.Row="2" Grid.Column="5"></Controls:NumericUpDown>
+                    <TextBlock Grid.Row="2" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">SP Offset</TextBlock>
+                    <TextBox  Text="{Binding Source={x:Static p:Settings.Default}, Path=SetpointOffset, Mode=TwoWay}" Grid.Row="2" Grid.Column="5" HorizontalAlignment="Stretch" VerticalAlignment="Center"></TextBox>
 
-                    <DataGrid Name="TrialsDataGrid" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="6" AutoGenerateColumns="True" ItemsSource="{Binding trials, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBlock Grid.Row="3" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">Invert Offset</TextBlock>
+                    <Controls:ToggleSwitch  IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=InvertOffset, Mode=TwoWay}"  Grid.Row="3" OnLabel="" OffLabel="" Grid.Column="5" HorizontalAlignment="Stretch" VerticalAlignment="Center"></Controls:ToggleSwitch>
+
+                    <DataGrid Name="TrialsDataGrid" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="6" AutoGenerateColumns="True" ItemsSource="{Binding trials}">
 
                 </DataGrid>
       
@@ -169,6 +207,18 @@
 
                     <TextBlock Grid.Column="0" Grid.Row="2" VerticalAlignment="Center">Timeout Seconds</TextBlock>
                     <TextBox Grid.Column="1" Grid.Row="2"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=TimeoutSeconds, Mode=TwoWay}"/>
+
+                    <TextBlock Grid.Column="0" Grid.Row="4" VerticalAlignment="Center">Tolerance</TextBlock>
+                    <TextBox Grid.Column="1" Grid.Row="4"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=Tolerance, Mode=TwoWay}"/>
+
+
+                    <TextBlock Grid.Column="0" Grid.Row="5" VerticalAlignment="Center">Sample N</TextBlock>
+                    <TextBox Grid.Column="1" Grid.Row="5"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=Samples, Mode=TwoWay}"/>
+
+
+                    <TextBlock Grid.Column="0" Grid.Row="3" VerticalAlignment="Center">Confirm Port</TextBlock>
+                    <Controls:ToggleSwitch Grid.Column="1" Grid.Row="3"  VerticalAlignment="Center" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=PortOverride, Mode=TwoWay}"/>
+
                 </Grid>
             </TabItem>
         </TabControl>

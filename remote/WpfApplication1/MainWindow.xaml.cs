@@ -18,6 +18,9 @@ using MahApps.Metro.Controls.Dialogs;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using OxyPlot;
+using OxyPlot.Wpf;
+using OxyPlot.Axes;
 
 namespace WpfApplication1
 {
@@ -29,17 +32,16 @@ namespace WpfApplication1
         public DateTime timeFinished { get; set; }
         public TimeSpan timeElapsed { get { return timeFinished - timeStarted; } }
 
-        public double YawKP {get; set;}
-        public double YawKI { get; set; }
-        public double YawKD { get; set; }
-
-
-        public double LiftKP { get; set; }
-        public double LiftKI { get; set; }
-        public double LiftKD { get; set; }
+        public double KP {get; set;}
+        public double KI { get; set; }
+        public double KD { get; set; }
 
         public double error { get; set; }
         public bool timedOut { get; set;  }
+        public bool settled { get; set;  }
+
+        public int direction { get; set; }
+        public double target { get; set; }
     }
 
 
@@ -48,16 +50,27 @@ namespace WpfApplication1
     /// </summary>
     public partial class MainWindow :  INotifyPropertyChanged
     {
-
-
+        bool abortTrials = false;
         Settings settings = Properties.Settings.Default;
-
-        List<Trial> trials = new List<Trial>();
         SerialPort port = new SerialPort(Settings.Default.ComPort, Settings.Default.BaudRate, Parity.None, 8, StopBits.One);
 
         List<double> recordedPosition = new List<double>();
         List<double> recordedError = new List<double>();
         List<double> recordedOutput = new List<double>();
+
+        private List<Trial> _trials;
+        public List<Trial> trials
+        {
+            get { return _trials; }
+            set
+            {
+                if(_trials != value)
+                {
+                    _trials = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
 
         private double _runningError;
@@ -84,6 +97,21 @@ namespace WpfApplication1
                 if( _currentPosition != value)
                 {
                     _currentPosition = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+
+        private double _averagePosition;
+        public double averagePosition
+        {
+            get { return _averagePosition; }
+            set
+            {
+                if (_averagePosition != value)
+                {
+                    _averagePosition = value;
                     OnPropertyChanged();
                 }
             }
@@ -132,6 +160,22 @@ namespace WpfApplication1
             }
         }
 
+
+        private double _averagePercentError;
+        public double averagePercentError
+        {
+            get { return _averagePercentError; }
+            set
+            {
+                if (_averagePercentError != value)
+                {
+                    _averagePercentError = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
@@ -143,9 +187,9 @@ namespace WpfApplication1
 
         public MainWindow()
         {
+            trials = new List<Trial>();
             InitializeComponent();
             port.DataReceived += new SerialDataReceivedEventHandler(serialDataRecieved);
-            TrialsDataGrid.ItemsSource = trials;
         }
 
         private void serialDataRecieved(object sender, SerialDataReceivedEventArgs e)
@@ -168,6 +212,9 @@ namespace WpfApplication1
             if (double.TryParse(serialIn[0], out pos))
             {
                 recordedPosition.Add(pos); currentPosition = pos;
+                averagePosition = recordedPosition.Skip(recordedPosition.Count() - Settings.Default.Samples).Average();
+                averagePercentError = Math.Abs(averagePosition - currentSetpoint);
+                Settings.Default.ReachedDestination = averagePercentError < Settings.Default.Tolerance;
             }
             if (double.TryParse(serialIn[1], out err))
             {
@@ -182,49 +229,45 @@ namespace WpfApplication1
             
        }
 
-        private void serialDataSend(string msg)
-        {
-
-        }
-
-        Trial trial(double kp, double ki, double kd, double setpoint)
+        Task<Trial> trial(double kp, double ki, double kd, double setpoint)
         {
             runningError = 0;
             bool exitEarly = false;
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = DateTime.Now;
 
-            while (!settledWithinTolerance(settings.Tolerance, settings.Samples))
+            List<double> clonedList = new List<double>(recordedPosition);
+
+            while (!Settings.Default.ReachedDestination && !exitEarly)
             {
-                if (DateTime.UtcNow - startTime > TimeSpan.FromSeconds(Settings.Default.TimeoutSeconds))
-                {
-                    exitEarly = true;
-                    break;
-                }
+                exitEarly = (DateTime.Now - startTime > TimeSpan.FromSeconds(Settings.Default.TimeoutSeconds));
             }
 
             Trial t = new Trial
             {
                 timeStarted = startTime,
-                timeFinished = DateTime.UtcNow,
+                timeFinished = DateTime.Now,
                 error = runningError,
-                timedOut = exitEarly
+                timedOut = exitEarly,
+                settled = Settings.Default.ReachedDestination,
+                target = setpoint
             };
 
-            t.YawKP = kp; t.YawKI = ki; t.YawKD = kd;
+            t.KP = kp; t.KI = ki; t.KD = kd;
 
-            return t;
+            return Task.FromResult(t);
         }
 
-        bool settledWithinTolerance(double tolerancePercent, int samples)
+
+        void initializePlot()
         {
-            double average = recordedPosition.Sum() / recordedPosition.Count();
-            return Math.Abs(average - currentSetpoint) < tolerancePercent;
-        }
 
+        }
 
         private void ApplyYawSettings_Click(object sender, RoutedEventArgs e)
         {
-            if (port.IsOpen)
+            initializePlot();
+
+            if (portOpen())
             {
                 SendYawData();
             }
@@ -236,6 +279,11 @@ namespace WpfApplication1
         
         private void SendYawData()
         {
+            if(!portOpen()) {
+                Alert_Async("CAN'T", "The port isn't open yet.");
+                return;
+            }
+
             port.WriteLine($"-s {currentSetpoint}");
             port.WriteLine($"-p {Settings.Default.YawKP}");
             port.WriteLine($"-i {Settings.Default.YawKI}");
@@ -248,37 +296,102 @@ namespace WpfApplication1
             settings.Save();
             base.OnClosing(e);
         }
-        
 
-        private void TrialBeginButton_Click(object sender, RoutedEventArgs e)
+        bool portOpen()
         {
+            if (Settings.Default.portOverride) return true;
+            return port.IsOpen;
+        }
+
+        private async void TrialBeginButton_Click(object sender, RoutedEventArgs e)
+        {
+            abortTrials = false;
+
+            if (!portOpen())
+            {
+                Alert_Async("OPEN THE CONNECTION", "We can't commence trials until you open the port first.");
+                return;
+            }
+
             currentSetpoint = 0;
 
-            for (double kp = settings.YawFrom; kp <= settings.YawTo; kp = kp + settings.YawBy)
-                for (double ki = settings.YawFrom; ki <= settings.YawTo; ki = ki + settings.YawBy)
-                    for (double kd = settings.YawFrom; kd <= settings.YawTo; kd = kp + settings.YawBy)
+            int inverter = 1;
+            for (double kp = settings.KPFrom; kp <= settings.KPTo; kp = kp + settings.KPBy)
+                for (double ki = settings.KIFrom; ki <= settings.KITo; ki = ki + settings.KIBy)
+                    for (double kd = settings.KDFrom; kd <= settings.KDTo; kd = kd + settings.KDBy)
                     {
+                        if (abortTrials)
+                        {
+                            Alert_Async("ABORTED", "Trials ended prematurely.");
+                            return;
+                        }
+
+                        if (Settings.Default.InvertOffset)
+                            inverter *= -1; // if the offset inverter is on, then setpoint should be -offset then +offset then -offset etc.
+
+                        currentSetpoint += currentPosition + Settings.Default.SetpointOffset * inverter;
+
+
                         Settings.Default.YawKP = kp;
                         Settings.Default.YawKI = ki;
                         Settings.Default.YawKD = kd;
 
                         SendYawData();
-                        Trial newTrial = trial(kp, ki, kd, currentSetpoint);
+                        Trial newTrial = await Task.Run(() =>
+                        {
+                            return trial(kp, ki, kd, currentSetpoint);
+                        });
+
+                        newTrial.direction = inverter;
+
                         trials.Add(newTrial);
-                        currentSetpoint += 50;
-                      
+
+                        
+
+                     
                     }
 
         }
 
         private void TrialEndButton_Click(object sender, RoutedEventArgs e)
         {
+            abortTrials = true;
+            Alert_Async("WILL DO", "The trials will end after the most recently started trial finishes.");
+        }
 
+        public PlotModel DataPlot { get; set; }
+
+        private static PlotModel CreatePlotModel()
+        {
+            var series = new OxyPlot.Series.LineSeries();
+
+            for(int i = 0; i< 10; i++)
+            {
+                series.Points.Add(new DataPoint(i, i));
+            }
+
+            var newPlot = new PlotModel
+            {
+                Title = "blah"
+            };
+
+            newPlot.Series.Add(series);
+
+            return newPlot;
+        }
+
+        private void ManualSave_Click(object sender, RoutedEventArgs e)
+        {
+            DataPlot = CreatePlotModel();
+                
+            Settings.Default.Save();
+            Alert_Async("YOU GOT IT", 
+                        @"Your settings are saved. This'll happen automatically on close but it's handy to save manually in case the program crashes. \n\n Not that it would do that.");
         }
 
         private void OpenConnection_Click(object sender, RoutedEventArgs e)
         {
-            if (!port.IsOpen)
+            if (!portOpen())
             {
                 var button = sender as Button;
                 button.IsEnabled = false;

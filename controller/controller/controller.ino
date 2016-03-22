@@ -31,9 +31,6 @@ public:
 	double KI;
 	double KD;
 
-	long unsigned int errorTotal;
-	double sampleRecord[NUMBER_OF_SAMPLES_RECORDED];
-
 	void setPidGains(double kp, double ki, double kd ) {
 		KP = kp;
 		KI = ki;
@@ -88,8 +85,8 @@ void setup()
 	Yaw.setPidGains(0.100, 0.050, 0.210); 
 	Yaw.maxOutput = 250;
 	Yaw.minOutput = 155;
-	Yaw.minInput = 200;
-	Yaw.maxInput = -200;
+	Yaw.minInput = 1000;
+	Yaw.maxInput = -1000;
 	Yaw.setpoint = scaleValue(0, Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
 
 	YawPid.SetOutputLimits(Yaw.minOutput, Yaw.maxOutput);

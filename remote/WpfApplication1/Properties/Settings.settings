@@ -26,13 +26,13 @@
     <Setting Name="BaudRate" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">9600</Value>
     </Setting>
-    <Setting Name="YawFrom" Type="System.Double" Scope="User">
+    <Setting Name="KPFrom" Type="System.Double" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
-    <Setting Name="YawTo" Type="System.Double" Scope="User">
+    <Setting Name="KPTo" Type="System.Double" Scope="User">
       <Value Profile="(Default)">1</Value>
     </Setting>
-    <Setting Name="YawBy" Type="System.Double" Scope="User">
+    <Setting Name="KPBy" Type="System.Double" Scope="User">
       <Value Profile="(Default)">0.2</Value>
     </Setting>
     <Setting Name="LiftFrom" Type="System.Double" Scope="User">
@@ -52,6 +52,39 @@
     </Setting>
     <Setting Name="TimeoutSeconds" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="KIFrom" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="KITo" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="KIBy" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.5</Value>
+    </Setting>
+    <Setting Name="KDFrom" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="KDBy" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.5</Value>
+    </Setting>
+    <Setting Name="KDTo" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="SetpointOffset" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">50</Value>
+    </Setting>
+    <Setting Name="InvertOffset" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="portOverride" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ReachedDestination" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="AveragePosition" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
     </Setting>
   </Settings>
 </SettingsFile>
