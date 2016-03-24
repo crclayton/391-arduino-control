@@ -19,7 +19,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using OxyPlot;
-using OxyPlot.Wpf;
 using OxyPlot.Axes;
 
 namespace WpfApplication1
@@ -190,6 +189,8 @@ namespace WpfApplication1
             trials = new List<Trial>();
             InitializeComponent();
             port.DataReceived += new SerialDataReceivedEventHandler(serialDataRecieved);
+
+            StepResponsePlot.Model
         }
 
         private void serialDataRecieved(object sender, SerialDataReceivedEventArgs e)
@@ -365,25 +366,62 @@ namespace WpfApplication1
         {
             var series = new OxyPlot.Series.LineSeries();
 
-            for(int i = 0; i< 10; i++)
+            for(int i = 1; i< 100; i++)
             {
-                series.Points.Add(new DataPoint(i, i));
+                series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), i));
             }
 
             var newPlot = new PlotModel
             {
-                Title = "blah"
+                Title = ""
             };
 
             newPlot.Series.Add(series);
+
+
+            var xAxis = new DateTimeAxis
+            {
+                Position = AxisPosition.Bottom,
+                StringFormat = "hh-ss-mm",
+                Title = "Time",
+                AxislineColor = OxyColors.Gray,
+                TextColor = OxyColors.LightGray,
+                TicklineColor = OxyColors.Gray,
+                MinorGridlineColor = OxyColors.Gray,
+                MajorGridlineColor = OxyColors.Gray,
+                ExtraGridlineColor = OxyColors.Gray,
+                IntervalType = DateTimeIntervalType.Months,
+                MajorGridlineStyle = LineStyle.Solid,
+                TitleColor = OxyColors.Gray
+            };
+
+            var linearAxis = new LinearAxis
+            {
+                Position = AxisPosition.Left,
+                Title = "Position",
+                MajorGridlineStyle = LineStyle.Solid,
+                AxislineColor = OxyColors.Gray,
+                TextColor = OxyColors.LightGray,
+                TicklineColor = OxyColors.Gray,
+                MinorGridlineColor = OxyColors.Gray,
+                MajorGridlineColor = OxyColors.Gray,
+                ExtraGridlineColor = OxyColors.Gray,
+                TitleColor = OxyColors.Gray
+            };
+
+
+            newPlot.Axes.Add(xAxis);
+            newPlot.Axes.Add(linearAxis);
+
 
             return newPlot;
         }
 
         private void ManualSave_Click(object sender, RoutedEventArgs e)
         {
-            DataPlot = CreatePlotModel();
-                
+            StepResponsePlot.Model = CreatePlotModel();
+            StepResponsePlot.Model.DefaultColors = OxyPalettes.Jet(StepResponsePlot.Series.Count).Colors;
+                            
             Settings.Default.Save();
             Alert_Async("YOU GOT IT", 
                         @"Your settings are saved. This'll happen automatically on close but it's handy to save manually in case the program crashes. \n\n Not that it would do that.");

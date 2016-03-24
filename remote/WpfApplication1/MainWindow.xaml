@@ -97,9 +97,13 @@
                     
                     <!-- chart here -->
 
-                    <oxy:Plot Grid.Row="6"
+                    <oxy:PlotView 
+                                Name="StepResponsePlot"        
+                        Grid.Row="6"
+                              Background="Transparent"
+                              Foreground="Black"
                               Grid.Column="0" Grid.ColumnSpan="4" 
-                              Model="{Binding DataPlot}"/>
+                              ></oxy:PlotView>
 
 
                         <Button Name="ApplyYawSettings" Click="ApplyYawSettings_Click" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="4">Update</Button>
