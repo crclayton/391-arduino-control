@@ -82,7 +82,7 @@ void setup()
 	// won't go full-speed ahead
 
 	// YAW
-	Yaw.setPidGains(0.100, 0.050, 0.210); 
+	Yaw.setPidGains(1, 0, 0); 
 	Yaw.maxOutput = 250;
 	Yaw.minOutput = 155;
 	Yaw.minInput = 1000;
@@ -189,9 +189,9 @@ int assignSerialInput(String serialInput) {
 		default:
 			Serial.println("ERROR: Unknown identifier.");
 			return -1;
-
-		YawPid.SetTunings(Yaw.KP, Yaw.KI, Yaw.KD);
 	}
+
+	YawPid.SetTunings(Yaw.KP, Yaw.KI, Yaw.KD);
 
 	Serial.print("SUCCESS: Value ");
 	Serial.print(serialInputValue);

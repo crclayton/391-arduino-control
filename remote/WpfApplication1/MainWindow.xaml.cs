@@ -53,9 +53,11 @@ namespace WpfApplication1
         Settings settings = Properties.Settings.Default;
         SerialPort port = new SerialPort(Settings.Default.ComPort, Settings.Default.BaudRate, Parity.None, 8, StopBits.One);
 
+        /*
         List<double> recordedPosition = new List<double>();
         List<double> recordedError = new List<double>();
         List<double> recordedOutput = new List<double>();
+        */
 
         private List<Trial> _trials;
         public List<Trial> trials
@@ -66,6 +68,19 @@ namespace WpfApplication1
                 if(_trials != value)
                 {
                     _trials = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private PlotModel _dataPlot;
+        public PlotModel DataPlot {
+            get { return _dataPlot;  }
+            set
+            {
+                if (_dataPlot != value)
+                {
+                    _dataPlot = value;
                     OnPropertyChanged();
                 }
             }
@@ -189,8 +204,6 @@ namespace WpfApplication1
             trials = new List<Trial>();
             InitializeComponent();
             port.DataReceived += new SerialDataReceivedEventHandler(serialDataRecieved);
-
-            StepResponsePlot.Model
         }
 
         private void serialDataRecieved(object sender, SerialDataReceivedEventArgs e)
@@ -212,20 +225,32 @@ namespace WpfApplication1
             double pos, err, output;
             if (double.TryParse(serialIn[0], out pos))
             {
-                recordedPosition.Add(pos); currentPosition = pos;
-                averagePosition = recordedPosition.Skip(recordedPosition.Count() - Settings.Default.Samples).Average();
                 averagePercentError = Math.Abs(averagePosition - currentSetpoint);
+
+                
                 Settings.Default.ReachedDestination = averagePercentError < Settings.Default.Tolerance;
+
+                (DataPlot.Series[0] as OxyPlot.Series.LineSeries).Points.Add(
+                    new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), pos));
+
+                
+                (DataPlot.Series[1] as OxyPlot.Series.LineSeries).Points.Add(
+                    new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), currentSetpoint));
+                
+
+                DataPlot.InvalidatePlot(true);
+                
+
             }
             if (double.TryParse(serialIn[1], out err))
             {
-                recordedError.Add(err); currentError = err;
+                currentError = err;
                 runningError += currentError;
             }
 
             if (double.TryParse(serialIn[2], out output))
             {
-                recordedOutput.Add(output); currentOutput = output;
+                currentOutput = output;
             }
             
        }
@@ -236,7 +261,6 @@ namespace WpfApplication1
             bool exitEarly = false;
             DateTime startTime = DateTime.Now;
 
-            List<double> clonedList = new List<double>(recordedPosition);
 
             while (!Settings.Default.ReachedDestination && !exitEarly)
             {
@@ -259,15 +283,8 @@ namespace WpfApplication1
         }
 
 
-        void initializePlot()
-        {
-
-        }
-
         private void ApplyYawSettings_Click(object sender, RoutedEventArgs e)
         {
-            initializePlot();
-
             if (portOpen())
             {
                 SendYawData();
@@ -359,68 +376,10 @@ namespace WpfApplication1
             abortTrials = true;
             Alert_Async("WILL DO", "The trials will end after the most recently started trial finishes.");
         }
-
-        public PlotModel DataPlot { get; set; }
-
-        private static PlotModel CreatePlotModel()
-        {
-            var series = new OxyPlot.Series.LineSeries();
-
-            for(int i = 1; i< 100; i++)
-            {
-                series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), i));
-            }
-
-            var newPlot = new PlotModel
-            {
-                Title = ""
-            };
-
-            newPlot.Series.Add(series);
-
-
-            var xAxis = new DateTimeAxis
-            {
-                Position = AxisPosition.Bottom,
-                StringFormat = "hh-ss-mm",
-                Title = "Time",
-                AxislineColor = OxyColors.Gray,
-                TextColor = OxyColors.LightGray,
-                TicklineColor = OxyColors.Gray,
-                MinorGridlineColor = OxyColors.Gray,
-                MajorGridlineColor = OxyColors.Gray,
-                ExtraGridlineColor = OxyColors.Gray,
-                IntervalType = DateTimeIntervalType.Months,
-                MajorGridlineStyle = LineStyle.Solid,
-                TitleColor = OxyColors.Gray
-            };
-
-            var linearAxis = new LinearAxis
-            {
-                Position = AxisPosition.Left,
-                Title = "Position",
-                MajorGridlineStyle = LineStyle.Solid,
-                AxislineColor = OxyColors.Gray,
-                TextColor = OxyColors.LightGray,
-                TicklineColor = OxyColors.Gray,
-                MinorGridlineColor = OxyColors.Gray,
-                MajorGridlineColor = OxyColors.Gray,
-                ExtraGridlineColor = OxyColors.Gray,
-                TitleColor = OxyColors.Gray
-            };
-
-
-            newPlot.Axes.Add(xAxis);
-            newPlot.Axes.Add(linearAxis);
-
-
-            return newPlot;
-        }
+        
 
         private void ManualSave_Click(object sender, RoutedEventArgs e)
         {
-            StepResponsePlot.Model = CreatePlotModel();
-            StepResponsePlot.Model.DefaultColors = OxyPalettes.Jet(StepResponsePlot.Series.Count).Colors;
                             
             Settings.Default.Save();
             Alert_Async("YOU GOT IT", 
@@ -435,7 +394,46 @@ namespace WpfApplication1
                 button.IsEnabled = false;
                 button.Content = "Connected";
                 port.Open();
+                DataPlot = new PlotModel
+                {
+                    Title = "Response",
+                    TitleColor = OxyColors.Gray
+                };
+                DataPlot.Series.Add(new OxyPlot.Series.LineSeries()); // for current position
+                DataPlot.Series.Add(new OxyPlot.Series.LineSeries()); // for setpoint
 
+                var xAxis = new DateTimeAxis
+                {
+                    Position = AxisPosition.Bottom,
+                    StringFormat = "hh-ss-mm",
+                    Title = "Time",
+                    AxislineColor = OxyColors.Gray,
+                    TextColor = OxyColors.LightGray,
+                    TicklineColor = OxyColors.Gray,
+                    MinorGridlineColor = OxyColors.Gray,
+                    MajorGridlineColor = OxyColors.Gray,
+                    ExtraGridlineColor = OxyColors.Gray,
+                    IntervalType = DateTimeIntervalType.Months,
+                    MajorGridlineStyle = LineStyle.Solid,
+                    TitleColor = OxyColors.Gray
+                };
+
+                var linearAxis = new LinearAxis
+                {
+                    Position = AxisPosition.Left,
+                    Title = "Position",
+                    MajorGridlineStyle = LineStyle.Solid,
+                    AxislineColor = OxyColors.Gray,
+                    TextColor = OxyColors.LightGray,
+                    TicklineColor = OxyColors.Gray,
+                    MinorGridlineColor = OxyColors.Gray,
+                    MajorGridlineColor = OxyColors.Gray,
+                    ExtraGridlineColor = OxyColors.Gray,
+                    TitleColor = OxyColors.Gray
+                };
+
+                DataPlot.Axes.Add(linearAxis);
+                DataPlot.Axes.Add(xAxis);
             }
             else
             {
