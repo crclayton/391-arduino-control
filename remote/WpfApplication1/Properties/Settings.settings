@@ -86,5 +86,11 @@
     <Setting Name="AveragePosition" Type="System.Double" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
+    <Setting Name="YawSetpointIdentifier" Type="System.String" Scope="User">
+      <Value Profile="(Default)">-s</Value>
+    </Setting>
+    <Setting Name="LiftSetpointIdentifier" Type="System.String" Scope="User">
+      <Value Profile="(Default)">-S</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

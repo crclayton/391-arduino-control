@@ -358,5 +358,29 @@ namespace WpfApplication1.Properties {
                 this["AveragePosition"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-s")]
+        public string YawSetpointIdentifier {
+            get {
+                return ((string)(this["YawSetpointIdentifier"]));
+            }
+            set {
+                this["YawSetpointIdentifier"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-S")]
+        public string LiftSetpointIdentifier {
+            get {
+                return ((string)(this["LiftSetpointIdentifier"]));
+            }
+            set {
+                this["LiftSetpointIdentifier"] = value;
+            }
+        }
     }
 }
