@@ -168,16 +168,8 @@ int assignSerialInput(String serialInput) {
 	double serialInputValue = serialInput.substring(3).toFloat();
 
 	switch (serialInputIdentifier) {
-		case('a') :
-			Altitude.setpoint = serialInputValue; break;
 
-		/*
-		case('A') :
-			Altitude.output = serialInputValue; break;
-		case('S') :
-			Yaw.output = serialInputValue; break;
-		*/
-
+		// yaw is lower case
 		case('s') :
 			Yaw.setpoint = serialInputValue; break;
 		case('p') :
@@ -186,11 +178,22 @@ int assignSerialInput(String serialInput) {
 			Yaw.KI = serialInputValue; break;
 		case('d') :
 			Yaw.KD = serialInputValue; break;
+
+		// altitude is upper case
+		case('S') :
+			Altitude.setpoint = serialInputValue; break;
+		case('P') :
+			Altitude.KP = serialInputValue; break;
+		case('I') :
+			Altitude.KI = serialInputValue; break;
+		case('D') :
+			Altitude.KD = serialInputValue; break;
 		default:
 			Serial.println("ERROR: Unknown identifier.");
 			return -1;
 	}
 
+	AltitudePid.SetTunings(Altitude.KP, Altitude.KI, Altitude.KD);
 	YawPid.SetTunings(Yaw.KP, Yaw.KI, Yaw.KD);
 
 	Serial.print("SUCCESS: Value ");
