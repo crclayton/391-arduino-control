@@ -97,10 +97,11 @@ namespace WpfApplication1
         public Task<Destination> NewDestination(double setpoint, int seconds)
         {
             Send(setpoint);
+
             double runningError = 0;
-            bool timedOut = false; 
+            bool timedOut = false;
             DateTime startTime = DateTime.Now;
-             
+
             while (!timedOut)
             {
                 timedOut = (DateTime.Now - startTime > TimeSpan.FromSeconds(seconds));
@@ -129,309 +130,13 @@ namespace WpfApplication1
         }
     }
 
-    public class DegreeOfFreedom
+    public class DegreeOfFreedom : INotifyPropertyChanged
     {
         public SerialPort serialPort { get; set; }
         public Setpoint setpoint = new Setpoint();
         public Gains gains = new Gains();
-    }
-
- 
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow :  INotifyPropertyChanged
-    {
-        bool abortTrials = false;
-        Settings settings = Settings.Default;
-        SerialPort port = new SerialPort(Settings.Default.ComPort, Settings.Default.BaudRate, Parity.None, 8, StopBits.One);
-
-        DegreeOfFreedom Yaw = new DegreeOfFreedom();
-        DegreeOfFreedom Lift = new DegreeOfFreedom();
-
-        public MainWindow()
-        {
-            trials = new List<Destination>();
-            InitializeComponent();
-            port.DataReceived += new SerialDataReceivedEventHandler(serialDataRecieved);
-
-            Yaw.serialPort = port;
-            Yaw.setpoint.identifier = "-s";
-            Yaw.gains.identifiers = new List<string> { "-p", "-i", "-d" };
-
-            Lift.serialPort = port;
-            Lift.setpoint.identifier = "-S";
-            Lift.gains.identifiers = new List<string> { "-P", "-I", "-D" };
-
-            YawPlot = PositionGraph.Setup("Yaw Position");
-            LiftPlot = PositionGraph.Setup("Lift Position");
-        }
-
-
-        private void serialDataRecieved(object sender, SerialDataReceivedEventArgs e)
-        {
-            if (!port.IsOpen) return;
-
-            string data = String.Empty;
-            try {
-                data = port.ReadLine();
-            }
-            catch
-            {
-                Alert_Async("DAMMIT", "Problem reading data.");
-                return;
-            }
-
-            List<string> serialIn = data.Split(' ').ToList();
-
-            if (serialIn.Count() < 3) return; // sometimes we get incomplete data, ignore that
-
-            double pos, err, output;
-            if (double.TryParse(serialIn[0], out pos))
-            {
-                currentPosition = pos;
-                PositionGraph.AddPoint(YawPlot, pos, currentSetpoint);
-            }
-            if (double.TryParse(serialIn[1], out err))
-            {
-                currentError = err;
-                runningError += Math.Abs(currentError);
-            }
-
-            if (double.TryParse(serialIn[2], out output))
-            {
-                currentOutput = output;
-            }
-            
-       }
-
-
-        private void ApplyYawSettings_Click(object sender, RoutedEventArgs e)
-        {
-            if (port.IsOpen)
-            {
-                Yaw.gains.Send(settings.YawKP, settings.YawKI, settings.YawKD);
-            }
-            else
-            {
-                Alert_Async("NOT YET", "You can't do that yet because the port isn't open.");
-            }
-        }
-
-        private void ApplyLiftSettings_Click(object sender, RoutedEventArgs e)
-        {
-            if (port.IsOpen)
-            {
-                Lift.gains.Send(settings.LiftKP, settings.LiftKI, settings.LiftKD);
-            }
-            else
-            {
-                Alert_Async("NOT YET", "You can't do that yet because the port isn't open.");
-            }
-        }
-
-
-
-
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
-        {
-            port.Close();
-            settings.Save();
-            base.OnClosing(e);
-        }
-
-        private async void TrialBeginButton_Click(object sender, RoutedEventArgs e)
-        {
-            abortTrials = false;
-            currentSetpoint = 0;
-
-            int inverter = 1;
-            for (double kp = settings.KPFrom; kp <= settings.KPTo; kp = kp + settings.KPBy)
-            {
-                for (double ki = settings.KIFrom; ki <= settings.KITo; ki = ki + settings.KIBy)
-                {
-                    for (double kd = settings.KDFrom; kd <= settings.KDTo; kd = kd + settings.KDBy)
-                    {
-                        if (abortTrials)
-                        {
-                            Alert_Async("ABORTED", "Trials ended prematurely.");
-                            return;
-                        }
-
-                        if (settings.InvertOffset)
-                            inverter *= -1; // if the offset inverter is on, then setpoint should be -offset then +offset then -offset etc.
-
-                        currentSetpoint += currentPosition + settings.SetpointOffset * inverter;
-
-                        Destination newTrial = await Task.Run(() =>
-                        {
-                            return Yaw.setpoint.NewDestination(currentSetpoint, settings.TimeoutSeconds);
-                        });
-
-                        settings.YawKP = newTrial.KP = kp;
-                        settings.YawKI = newTrial.KI = ki;
-                        settings.YawKD = newTrial.KD = kd;
-
-                        trials.Add(newTrial);
-                        TrialsDataGrid.Items.Refresh();
-                    }
-                }
-            }
-        }
-
-        private void TrialEndButton_Click(object sender, RoutedEventArgs e)
-        {
-            abortTrials = true;
-            Alert_Async("WILL DO", "The trials will end after the most recently started trial finishes.");
-        }
-        
-
-        private void ManualSave_Click(object sender, RoutedEventArgs e)
-        {
-                            
-            settings.Save();
-            Alert_Async("YOU GOT IT", 
-                        @"Your settings are saved. This'll happen automatically on close but it's handy to save manually in case the program crashes."
-                            + Environment.NewLine + Environment.NewLine + "Not that it would do that...");
-        }
-
-        private void OpenConnection_Click(object sender, RoutedEventArgs e)
-        {
-            if (!port.IsOpen)
-            {
-                try {
-                    port.Open();
-                }
-                catch (Exception ex)
-                {
-                    Alert_Async("WHOOPS", "Sorry, couldn't do that because: " + ex.Message);
-                    return;
-                }
-                var button = sender as Button;
-                button.IsEnabled = false;
-                button.Content = "Connected";
-            }
-            else
-            {
-                Alert_Async("NO NEED", "The port's already open");   
-            }
-        }
-
-        private async void Alert_Async(string title, string message)
-        {
-            MetroDialogOptions.AffirmativeButtonText = "OK";
-            await this.ShowMessageAsync(title, message);
-        }
-
-        private async Task<bool> Confirm_Async(string title, string message)
-        {
-            MetroDialogOptions.AffirmativeButtonText = "OK";
-            MetroDialogOptions.NegativeButtonText = "NO";
-
-            var res = await this.ShowMessageAsync(title, message,
-                        MessageDialogStyle.AffirmativeAndNegative);
-
-            return (res == MessageDialogResult.Affirmative);
-        }
-
-        private void RoutineOne_Click(object sender, RoutedEventArgs e)
-        {
-            Lift.setpoint.NewDestination(100, 30);
-            Yaw.setpoint.NewDestination(50, 30);
-            Lift.setpoint.NewDestination(0, 30);
-        }
-
-        private void RoutineTwo_Click(object sender, RoutedEventArgs e)
-        {
-            Lift.setpoint.NewDestination(100, 30);
-            Yaw.setpoint.NewDestination(100, 60);
-            Lift.setpoint.NewDestination(0, 30);
-        }
-
-        private async void RoutineThree_Click(object sender, RoutedEventArgs e)
-        {
-            if (await Confirm_Async("WOAH WOAH WOAH", "You sure you want to do that?"))
-            {
-                while (true)
-                {
-                    await Lift.setpoint.NewDestination(randint(-100, 100), randint(0, 10));
-                    await Yaw.setpoint.NewDestination(randint(-100, 100), randint(0, 10));
-                }
-            }
-            else
-            {
-                Alert_Async("OH THANK GOD", "Yeah, probably a good idea.");
-            }
-        }
-
-        int randint(int low, int high)
-        {
-            Random rnd = new Random();
-            return rnd.Next(low, high);
-        }
-
-        #region BindingVariables
-        private List<Destination> _trials;
-        public List<Destination> trials
-        {
-            get { return _trials; }
-            set
-            {
-                if (_trials != value)
-                {
-                    _trials = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        private PlotModel _yawPlot;
-        public PlotModel YawPlot
-        {
-            get { return _yawPlot; }
-            set
-            {
-                if (_yawPlot != value)
-                {
-                    _yawPlot = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-
-        private PlotModel _liftPlot;
-        public PlotModel LiftPlot
-        {
-            get { return _liftPlot; }
-            set
-            {
-                if (_liftPlot != value)
-                {
-                    _liftPlot = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-
-
-        private double _runningError;
-        public double runningError
-        {
-            get { return _runningError; }
-            set
-            {
-                if (_runningError != value)
-                {
-                    _runningError = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-
         private double _currentPosition;
+
         public double currentPosition
         {
             get { return _currentPosition; }
@@ -446,15 +151,15 @@ namespace WpfApplication1
         }
 
 
-        private double _averagePosition;
-        public double averagePosition
+        private double _runningError;
+        public double runningError
         {
-            get { return _averagePosition; }
+            get { return _runningError; }
             set
             {
-                if (_averagePosition != value)
+                if (_runningError != value)
                 {
-                    _averagePosition = value;
+                    _runningError = value;
                     OnPropertyChanged();
                 }
             }
@@ -504,19 +209,52 @@ namespace WpfApplication1
         }
 
 
-        private double _averagePercentError;
-        public double averagePercentError
+        private List<Destination> _trials;
+        public List<Destination> trials
         {
-            get { return _averagePercentError; }
+            get { return _trials; }
             set
             {
-                if (_averagePercentError != value)
+                if (_trials != value)
                 {
-                    _averagePercentError = value;
+                    _trials = value;
                     OnPropertyChanged();
                 }
             }
         }
+
+        private PlotModel _plot;
+        public PlotModel Plot
+        {
+            get { return _plot; }
+            set
+            {
+                if (_plot != value)
+                {
+                    _plot = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+
+
+    }
+
+
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : INotifyPropertyChanged
+    {
 
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -527,6 +265,270 @@ namespace WpfApplication1
                 PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             }
         }
+
+        bool abortTrials = false;
+        Settings settings = Settings.Default;
+        SerialPort port = new SerialPort(Settings.Default.ComPort, Settings.Default.BaudRate, Parity.None, 8, StopBits.One);
+
+
+        private DegreeOfFreedom _yaw;
+        public DegreeOfFreedom Yaw
+        {
+            get { return _yaw; }
+            set
+            {
+                if(_yaw != value)
+                {
+                    _yaw = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+
+        private DegreeOfFreedom _lift;
+        public DegreeOfFreedom Lift
+        {
+            get { return _lift; }
+            set
+            {
+                if (_lift != value)
+                {
+                    _lift = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public MainWindow()
+        {
+            Yaw = new DegreeOfFreedom();
+            Lift = new DegreeOfFreedom();
+
+            Yaw.trials = new List<Destination>();
+            InitializeComponent();
+            port.DataReceived += new SerialDataReceivedEventHandler(serialDataRecieved);
+
+            Yaw.serialPort = port;
+            Yaw.setpoint.identifier = settings.YawSetpointIdentifier;
+            Yaw.gains.identifiers = new List<string> { "-p", "-i", "-d" };
+
+            Lift.serialPort = port;
+            Lift.setpoint.identifier = settings.LiftSetpointIdentifier;
+            Lift.gains.identifiers = new List<string> { "-P", "-I", "-D" };
+
+            Yaw.Plot = PositionGraph.Setup("Yaw Position");
+            Lift.Plot = PositionGraph.Setup("Lift Position");
+        }
+
+
+        private void serialDataRecieved(object sender, SerialDataReceivedEventArgs e)
+        {
+            if (!port.IsOpen) return;
+
+            string data = String.Empty;
+            try
+            {
+                data = port.ReadLine();
+            }
+            catch
+            {
+                Alert_Async("DAMMIT", "Problem reading data.");
+                return;
+            }
+
+            List<string> serialIn = data.Split(' ').ToList();
+            if (serialIn.Count() < 3) return; // sometimes we get incomplete data, ignore that
+
+            double pos, err, output;
+            if (double.TryParse(serialIn[0], out pos))
+            {
+                Yaw.currentPosition = pos;
+                PositionGraph.AddPoint(Yaw.Plot, pos, Yaw.currentSetpoint);
+            }
+            if (double.TryParse(serialIn[1], out err))
+            {
+                Yaw.currentError = err;
+                Yaw.runningError += Math.Abs(err);
+            }
+
+            if (double.TryParse(serialIn[2], out output))
+            {
+                Yaw.currentOutput = output;
+            }
+            
+       }
+
+        #region EventHandler
+
+        private void ApplyYawSettings_Click(object sender, RoutedEventArgs e)
+        {
+            if (port.IsOpen)
+            {
+                Yaw.gains.Send(settings.YawKP, settings.YawKI, settings.YawKD);
+            }
+            else
+            {
+                Alert_Async("NOT YET", "You can't do that yet because the port isn't open.");
+            }
+        }
+
+        private void ApplyLiftSettings_Click(object sender, RoutedEventArgs e)
+        {
+            if (port.IsOpen)
+            {
+                Lift.gains.Send(settings.LiftKP, settings.LiftKI, settings.LiftKD);
+            }
+            else
+            {
+                Alert_Async("NOT YET", "You can't do that yet because the port isn't open.");
+            }
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            port.Close();
+            settings.Save();
+            base.OnClosing(e);
+        }
+
+        private async void TrialBeginButton_Click(object sender, RoutedEventArgs e)
+        {
+            abortTrials = false;
+            Yaw.currentSetpoint = Yaw.currentPosition;
+
+            int inverter = 1;
+            for (double kp = settings.KPFrom; kp <= settings.KPTo; kp = kp + settings.KPBy)
+            {
+                for (double ki = settings.KIFrom; ki <= settings.KITo; ki = ki + settings.KIBy)
+                {
+                    for (double kd = settings.KDFrom; kd <= settings.KDTo; kd = kd + settings.KDBy)
+                    {
+                        if (abortTrials)
+                        {
+                            Alert_Async("ABORTED", "Trials ended prematurely.");
+                            return;
+                        }
+
+                        if (settings.InvertOffset)
+                            inverter *= -1; // if the offset inverter is on, then setpoint should be -offset then +offset then -offset etc.
+
+                        Yaw.currentSetpoint = Yaw.currentPosition + settings.SetpointOffset * inverter;
+
+                        settings.YawKP = kp;
+                        settings.YawKI = ki;
+                        settings.YawKD = kd;
+
+
+                        Destination newTrial = await Task.Run(() =>
+                        {
+                            return Yaw.setpoint.NewDestination(Yaw.currentSetpoint, settings.TimeoutSeconds);
+                        });
+
+                        newTrial.KP = kp;
+                        newTrial.KI = ki;
+                        newTrial.KD = kd;
+
+                        Yaw.trials.Add(newTrial);
+                        TrialsDataGrid.Items.Refresh();
+                    }
+                }
+            }
+        }
+
+        private void TrialEndButton_Click(object sender, RoutedEventArgs e)
+        {
+            abortTrials = true;
+            Alert_Async("WILL DO", "The trials will end after the most recently started trial finishes.");
+        }
+        
+
+        private void ManualSave_Click(object sender, RoutedEventArgs e)
+        {
+                            
+            settings.Save();
+            Alert_Async("YOU GOT IT", 
+                        @"Your settings are saved. This'll happen automatically on close but it's handy to save manually in case the program crashes."
+                            + Environment.NewLine + Environment.NewLine + "Not that it would do that...");
+        }
+
+        private void OpenConnection_Click(object sender, RoutedEventArgs e)
+        {
+            if (!port.IsOpen)
+            {
+                try {
+                    port.Open();
+                }
+                catch (Exception ex)
+                {
+                    Alert_Async("WHOOPS", "Sorry, couldn't do that because: " + ex.Message);
+                    return;
+                }
+                var button = sender as Button;
+                button.IsEnabled = false;
+                button.Content = "Connected";
+            }
+            else
+            {
+                Alert_Async("NO NEED", "The port's already open");   
+            }
+        }
+        
+        private void RoutineOne_Click(object sender, RoutedEventArgs e)
+        {
+            Lift.setpoint.NewDestination(100, 30);
+            Yaw.setpoint.NewDestination(50, 30);
+            Lift.setpoint.NewDestination(0, 30);
+        }
+
+        private void RoutineTwo_Click(object sender, RoutedEventArgs e)
+        {
+            Lift.setpoint.NewDestination(100, 30);
+            Yaw.setpoint.NewDestination(100, 60);
+            Lift.setpoint.NewDestination(0, 30);
+        }
+
+        private async void RoutineThree_Click(object sender, RoutedEventArgs e)
+        {
+            if (await Confirm_Async("WOAH WOAH WOAH", "You sure you want to do that?"))
+            {
+                while (true)
+                {
+                    await Lift.setpoint.NewDestination(randint(-100, 100), randint(0, 10));
+                    await Yaw.setpoint.NewDestination(randint(-100, 100), randint(0, 10));
+                }
+            }
+            else
+            {
+                Alert_Async("OH THANK GOD", "Yeah, probably a good idea.");
+            }
+        }
+
         #endregion
+
+
+        private async void Alert_Async(string title, string message)
+        {
+            MetroDialogOptions.AffirmativeButtonText = "OK";
+            await this.ShowMessageAsync(title, message);
+        }
+
+        private async Task<bool> Confirm_Async(string title, string message)
+        {
+            MetroDialogOptions.AffirmativeButtonText = "OK";
+            MetroDialogOptions.NegativeButtonText = "NO";
+
+            var res = await this.ShowMessageAsync(title, message,
+                        MessageDialogStyle.AffirmativeAndNegative);
+
+            return (res == MessageDialogResult.Affirmative);
+        }
+
+        int randint(int low, int high)
+        {
+            return new Random().Next(low, high);
+        }
+
+
     }
 }
