@@ -14,8 +14,6 @@ using OxyPlot.Axes;
 
 namespace WpfApplication1
 {
-
-
     public class Destination
     {
         public DateTime timeStarted { get; set; }
@@ -30,16 +28,22 @@ namespace WpfApplication1
 
     public static class PositionGraph
     {
-        public static void AddPoint(PlotModel plot, double position, double setpoint)
+        public static void AddPoint(PlotModel plot, List<double>values)
         {
-            DataPoint positionPoint = new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), position);
-            DataPoint setpointPoint = new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), setpoint);
+            if (!Settings.Default.portOverride) return;
 
-            (plot.Series[0] as OxyPlot.Series.LineSeries).Points.Add(positionPoint);
-            (plot.Series[0] as OxyPlot.Series.LineSeries).Points.Add(setpointPoint);
+            var i = 0;
+            foreach (double value in values)
+            {
+                DataPoint pnt = new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), value);
+                (plot.Series[i] as OxyPlot.Series.LineSeries).Points.Add(pnt);
+                i++;
+            }
 
             plot.InvalidatePlot(true);
         }
+
+
 
         public static PlotModel Setup(string title)
         {
@@ -48,19 +52,21 @@ namespace WpfApplication1
             plot.TitleColor = OxyColors.Gray;
             plot.Series.Add(new OxyPlot.Series.LineSeries()); // for current position
             plot.Series.Add(new OxyPlot.Series.LineSeries()); // for setpoint
+            plot.Series.Add(new OxyPlot.Series.LineSeries()); // for output
 
             DateTimeAxis xAxis = new DateTimeAxis
             {
                 Position = AxisPosition.Bottom,
-                StringFormat = "hh-ss-mm",
+                StringFormat = "hh:mm:ss",
                 Title = "Time",
+                IntervalLength = 60,
                 AxislineColor = OxyColors.Gray,
                 TextColor = OxyColors.LightGray,
                 TicklineColor = OxyColors.Gray,
                 MinorGridlineColor = OxyColors.Gray,
                 MajorGridlineColor = OxyColors.Gray,
                 ExtraGridlineColor = OxyColors.Gray,
-                IntervalType = DateTimeIntervalType.Months,
+                IntervalType = DateTimeIntervalType.Seconds,
                 MajorGridlineStyle = LineStyle.Solid,
                 TitleColor = OxyColors.Gray
             };
@@ -86,17 +92,17 @@ namespace WpfApplication1
     }
 
 
-    public class Setpoint
+    public class Setpoint : INotifyPropertyChanged
     {
         public string identifier { get; set; }
-        public SerialPort port { get; set; }
-        public void Send(double value)
+
+        public void Send(SerialPort serial, double value)
         {
-            port.WriteLine($"{identifier} {value}");
+            serial.WriteLine($"{identifier} {value}");
         }
-        public Task<Destination> NewDestination(double setpoint, int seconds)
+        public Task<Destination> NewDestination(SerialPort serial, double setpoint, int seconds)
         {
-            Send(setpoint);
+            Send(serial, setpoint);
 
             double runningError = 0;
             bool timedOut = false;
@@ -116,23 +122,30 @@ namespace WpfApplication1
 
             return Task.FromResult(t);
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
     }
 
     public class Gains
     {
         public List<string> identifiers { get; set; }
-        public SerialPort port { get; set; }
-        public void Send(double kp, double ki, double kd)
+        public void Send(SerialPort serial, double kp, double ki, double kd)
         {
-            port.WriteLine($"{identifiers[0]} {kp}");
-            port.WriteLine($"{identifiers[1]} {ki}");
-            port.WriteLine($"{identifiers[2]} {kd}");
+            serial.WriteLine($"{identifiers[0]} {kp}");
+            serial.WriteLine($"{identifiers[1]} {ki}");
+            serial.WriteLine($"{identifiers[2]} {kd}");
         }
     }
 
     public class DegreeOfFreedom : INotifyPropertyChanged
     {
-        public SerialPort serialPort { get; set; }
         public Setpoint setpoint = new Setpoint();
         public Gains gains = new Gains();
         private double _currentPosition;
@@ -149,6 +162,21 @@ namespace WpfApplication1
                 }
             }
         }
+
+        private double _currentSetpoint;
+        public double currentSetpoint
+        {
+            get { return _currentSetpoint; }
+            set
+            {
+                if (_currentSetpoint != value)
+                {
+                    _currentSetpoint = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
 
 
         private double _runningError;
@@ -193,20 +221,6 @@ namespace WpfApplication1
             }
         }
 
-
-        private double _currentSetpoint;
-        public double currentSetpoint
-        {
-            get { return _currentSetpoint; }
-            set
-            {
-                if (_currentSetpoint != value)
-                {
-                    _currentSetpoint = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
 
 
         private List<Destination> _trials;
@@ -255,8 +269,6 @@ namespace WpfApplication1
     /// </summary>
     public partial class MainWindow : INotifyPropertyChanged
     {
-
-
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
@@ -269,7 +281,6 @@ namespace WpfApplication1
         bool abortTrials = false;
         Settings settings = Settings.Default;
         SerialPort port = new SerialPort(Settings.Default.ComPort, Settings.Default.BaudRate, Parity.None, 8, StopBits.One);
-
 
         private DegreeOfFreedom _yaw;
         public DegreeOfFreedom Yaw
@@ -300,31 +311,46 @@ namespace WpfApplication1
             }
         }
 
+        bool tryToRead;
+
         public MainWindow()
         {
-            Yaw = new DegreeOfFreedom();
-            Lift = new DegreeOfFreedom();
-
-            Yaw.trials = new List<Destination>();
+            
             InitializeComponent();
             port.DataReceived += new SerialDataReceivedEventHandler(serialDataRecieved);
 
-            Yaw.serialPort = port;
+            tryToRead = true;
+
+            // initialize axes
+            Yaw = new DegreeOfFreedom
+            {
+                trials = new List<Destination>(),
+                Plot = PositionGraph.Setup("Yaw Position"),
+                currentPosition = 127.5
+            };
+
             Yaw.setpoint.identifier = settings.YawSetpointIdentifier;
+            Yaw.currentSetpoint = Yaw.currentPosition;
             Yaw.gains.identifiers = new List<string> { "-p", "-i", "-d" };
 
-            Lift.serialPort = port;
-            Lift.setpoint.identifier = settings.LiftSetpointIdentifier;
-            Lift.gains.identifiers = new List<string> { "-P", "-I", "-D" };
 
-            Yaw.Plot = PositionGraph.Setup("Yaw Position");
-            Lift.Plot = PositionGraph.Setup("Lift Position");
+            Lift = new DegreeOfFreedom
+            {
+                trials = new List<Destination>(),
+                Plot = PositionGraph.Setup("Lift Position"),
+                currentPosition = 0
+            };
+            Lift.setpoint.identifier = settings.LiftSetpointIdentifier;
+            Lift.currentSetpoint = Lift.currentPosition;
+            Lift.gains.identifiers = new List<string> { "-P", "-I", "-D" };
         }
 
 
         private void serialDataRecieved(object sender, SerialDataReceivedEventArgs e)
         {
             if (!port.IsOpen) return;
+
+            if (!tryToRead) return;
 
             string data = String.Empty;
             try
@@ -338,26 +364,37 @@ namespace WpfApplication1
             }
 
             List<string> serialIn = data.Split(' ').ToList();
-            if (serialIn.Count() < 3) return; // sometimes we get incomplete data, ignore that
+            if (serialIn.Count() < 4) return; // sometimes we get incomplete data, ignore that
 
-            double pos, err, output;
-            if (double.TryParse(serialIn[0], out pos))
+            // yaw values
+            double yawPosition, yawOutput;
+            if (double.TryParse(serialIn[0], out yawPosition))
             {
-                Yaw.currentPosition = pos;
-                PositionGraph.AddPoint(Yaw.Plot, pos, Yaw.currentSetpoint);
+                Yaw.currentPosition = yawPosition;
+                //Yaw.currentError = Yaw.currentSetpoint - Yaw.currentPosition;
+                //Yaw.runningError += Math.Abs(Yaw.currentError);
+                PositionGraph.AddPoint(Yaw.Plot, new List<double> { Yaw.currentPosition, Yaw.currentSetpoint, Yaw.currentOutput });
             }
-            if (double.TryParse(serialIn[1], out err))
+            if (double.TryParse(serialIn[1], out yawOutput))
             {
-                Yaw.currentError = err;
-                Yaw.runningError += Math.Abs(err);
+                Yaw.currentOutput = yawOutput;
             }
 
-            if (double.TryParse(serialIn[2], out output))
+            // lift values
+            double liftPosition, liftOutput;
+            if (double.TryParse(serialIn[2], out liftPosition))
             {
-                Yaw.currentOutput = output;
+                Lift.currentPosition = liftPosition;
+                //Lift.currentError = Lift.currentSetpoint - Lift.currentPosition;
+                //Lift.runningError += Math.Abs(Lift.currentError);
+                PositionGraph.AddPoint(Lift.Plot, new List<double> { Lift.currentPosition, Lift.currentSetpoint, Lift.currentOutput });
             }
-            
-       }
+            if (double.TryParse(serialIn[3], out liftOutput))
+            {
+                Lift.currentOutput = liftOutput;
+            }
+
+        }
 
         #region EventHandler
 
@@ -365,7 +402,9 @@ namespace WpfApplication1
         {
             if (port.IsOpen)
             {
-                Yaw.gains.Send(settings.YawKP, settings.YawKI, settings.YawKD);
+                Yaw.Plot = PositionGraph.Setup("Yaw Position");
+                Yaw.setpoint.Send(port, Yaw.currentSetpoint);
+                Yaw.gains.Send(port, settings.YawKP, settings.YawKI, settings.YawKD);
             }
             else
             {
@@ -377,7 +416,9 @@ namespace WpfApplication1
         {
             if (port.IsOpen)
             {
-                Lift.gains.Send(settings.LiftKP, settings.LiftKI, settings.LiftKD);
+                Lift.Plot = PositionGraph.Setup("Lift Position");
+                Lift.setpoint.Send(port, Lift.currentSetpoint);
+                Lift.gains.Send(port, settings.LiftKP, settings.LiftKI, settings.LiftKD);
             }
             else
             {
@@ -422,7 +463,7 @@ namespace WpfApplication1
 
                         Destination newTrial = await Task.Run(() =>
                         {
-                            return Yaw.setpoint.NewDestination(Yaw.currentSetpoint, settings.TimeoutSeconds);
+                            return Yaw.setpoint.NewDestination(port, Yaw.currentSetpoint, settings.TimeoutSeconds);
                         });
 
                         newTrial.KP = kp;
@@ -464,28 +505,37 @@ namespace WpfApplication1
                     Alert_Async("WHOOPS", "Sorry, couldn't do that because: " + ex.Message);
                     return;
                 }
-                var button = sender as Button;
-                button.IsEnabled = false;
-                button.Content = "Connected";
+                Button button = sender as Button;
+                button.Content = "Disconnect";
             }
             else
             {
-                Alert_Async("NO NEED", "The port's already open");   
+                try
+                {
+                    tryToRead = false;
+                    port.Close();
+                }
+                catch (Exception ex)
+                {
+                    Alert_Async("OOPS", "Couldn't close because: " + ex.Message);
+                }
+                Button button = sender as Button;
+                button.Content = "Connect";
             }
         }
         
         private void RoutineOne_Click(object sender, RoutedEventArgs e)
         {
-            Lift.setpoint.NewDestination(100, 30);
-            Yaw.setpoint.NewDestination(50, 30);
-            Lift.setpoint.NewDestination(0, 30);
+            Lift.setpoint.NewDestination(port, 100, 30);
+            Yaw.setpoint.NewDestination(port, 50, 30);
+            Lift.setpoint.NewDestination(port, 0, 30);
         }
 
         private void RoutineTwo_Click(object sender, RoutedEventArgs e)
         {
-            Lift.setpoint.NewDestination(100, 30);
-            Yaw.setpoint.NewDestination(100, 60);
-            Lift.setpoint.NewDestination(0, 30);
+            Lift.setpoint.NewDestination(port, 100, 30);
+            Yaw.setpoint.NewDestination(port, 100, 60);
+            Lift.setpoint.NewDestination(port, 0, 30);
         }
 
         private async void RoutineThree_Click(object sender, RoutedEventArgs e)
@@ -494,8 +544,8 @@ namespace WpfApplication1
             {
                 while (true)
                 {
-                    await Lift.setpoint.NewDestination(randint(-100, 100), randint(0, 10));
-                    await Yaw.setpoint.NewDestination(randint(-100, 100), randint(0, 10));
+                    await Lift.setpoint.NewDestination(port, randint(-100, 100), randint(0, 10));
+                    await Yaw.setpoint.NewDestination(port, randint(-100, 100), randint(0, 10));
                 }
             }
             else
@@ -529,6 +579,11 @@ namespace WpfApplication1
             return new Random().Next(low, high);
         }
 
-
+        private void MetroWindow_Closing(object sender, CancelEventArgs e)
+        {
+            tryToRead = false;
+            port.Close();
+            settings.Save();
+        }
     }
 }

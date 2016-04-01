@@ -11,7 +11,6 @@
 #define YAW_INPUT_PIN_2					3
 #define YAW_OUTPUT_PIN					10
 
-#define ALTITUDE_RANGE					200
+#define ALTITUDE_RANGE					-200
 
 #endif
-

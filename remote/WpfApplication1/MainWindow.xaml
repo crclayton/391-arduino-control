@@ -15,10 +15,11 @@
                       TitleCaps="False"
                       RightWindowCommandsOverlayBehavior="Never"
         Typography.Capitals="SmallCaps"
+                      Closing="MetroWindow_Closing"
                      
         Title="Super Turbo Ultramax Helicontroller Remote">
 
-
+        
             
          <Window.Resources>
 
@@ -94,12 +95,13 @@
                     <oxy:PlotView  Grid.Row="0"
                                 Background="Transparent"
                                 Foreground="Black"
-                                Model="{Binding LiftPlot}">
-                </oxy:PlotView>
+                                Model="{Binding Path=Lift.Plot}">
+                 </oxy:PlotView>
+                    
                     <oxy:PlotView   Grid.Row="1"
                                 Background="Transparent"
                                 Foreground="Black"
-                                Model="{Binding YawPlot}">
+                                Model="{Binding Path=Yaw.Plot}">
                     </oxy:PlotView>
                     
                 </Grid>
@@ -140,8 +142,8 @@
                 <TextBox Grid.Column="1" Grid.Row="5"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=Samples, Mode=TwoWay}"/>
 
 
-                <TextBlock Grid.Column="0" Grid.Row="3" VerticalAlignment="Center">Confirm Port</TextBlock>
-                <Controls:ToggleSwitch Grid.Column="1" Grid.Row="3"  VerticalAlignment="Center" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=PortOverride, Mode=TwoWay}"/>
+                <TextBlock Grid.Column="0" Grid.Row="3" VerticalAlignment="Center">Graph</TextBlock>
+                <Controls:ToggleSwitch Grid.Column="1" Grid.Row="3"  VerticalAlignment="Center" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=portOverride, Mode=TwoWay}"/>
 
             </Grid>
              </Controls:Flyout>
@@ -186,7 +188,7 @@
                     <Controls:NumericUpDown Maximum="255" Minimum="150"  Value="{Binding Path=Yaw.currentOutput}" IsEnabled="{Binding ElementName=YawOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
                     <Controls:ToggleSwitch Name="YawTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Interval="10" Value="{Binding currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=YawTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="10" Value="{Binding Path=Yaw.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=YawTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKP, Mode=TwoWay}" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.001" Speedup="True"></Controls:NumericUpDown>
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.001" Speedup="True" ></Controls:NumericUpDown>
@@ -237,7 +239,7 @@
                     <Controls:NumericUpDown Maximum="255" Minimum="150"  Value="{Binding Path=Lift.currentOutput}" IsEnabled="{Binding ElementName=LiftOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
                     <Controls:ToggleSwitch Name="LiftTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Interval="10" Value="{Binding currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=LiftTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Interval="10" Value="{Binding Path=Lift.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=LiftTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKP, Mode=TwoWay}"  Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.001" Speedup="True"></Controls:NumericUpDown>
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.001" Speedup="True" ></Controls:NumericUpDown>
