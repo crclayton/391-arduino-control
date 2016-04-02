@@ -92,7 +92,7 @@ void setup()
 	// set setpoint to 0 (current position)
 
 	// LIFT
-	Lift.setPidGains(1, 0, 0);
+	Lift.setPidGains(10, 10, 0);
 	Lift.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 	Lift.minInput = Lift.rawInput; // to prevent wander, set minimum to 0 
 	Lift.maxInput = Lift.rawInput + ALTITUDE_RANGE; // and maximum to 200 points difference
