@@ -72,7 +72,7 @@
             </ToggleButton>
 
             <ToggleButton Name="ViewPlotSwitch" IsChecked="False">
-                <StackPanel Orientation="Horizontal">0.6
+                <StackPanel Orientation="Horizontal">
                     <TextBlock Margin="2"
                                VerticalAlignment="Center"
                                FontWeight="Bold"
