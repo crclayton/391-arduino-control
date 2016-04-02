@@ -373,7 +373,7 @@ namespace WpfApplication1
                 Yaw.currentPosition = yawPosition;
                 //Yaw.currentError = Yaw.currentSetpoint - Yaw.currentPosition;
                 //Yaw.runningError += Math.Abs(Yaw.currentError);
-                PositionGraph.AddPoint(Yaw.Plot, new List<double> { Yaw.currentPosition, Yaw.currentSetpoint, Yaw.currentOutput });
+                PositionGraph.AddPoint(Yaw.Plot, new List<double> { Yaw.currentPosition, Yaw.currentSetpoint /*, Yaw.currentOutput*/ });
             }
             if (double.TryParse(serialIn[1], out yawOutput))
             {
@@ -387,7 +387,7 @@ namespace WpfApplication1
                 Lift.currentPosition = liftPosition;
                 //Lift.currentError = Lift.currentSetpoint - Lift.currentPosition;
                 //Lift.runningError += Math.Abs(Lift.currentError);
-                PositionGraph.AddPoint(Lift.Plot, new List<double> { Lift.currentPosition, Lift.currentSetpoint, Lift.currentOutput });
+                PositionGraph.AddPoint(Lift.Plot, new List<double> { Lift.currentPosition, Lift.currentSetpoint , Lift.currentOutput });
             }
             if (double.TryParse(serialIn[3], out liftOutput))
             {
@@ -402,7 +402,7 @@ namespace WpfApplication1
         {
             if (port.IsOpen)
             {
-                Yaw.Plot = PositionGraph.Setup("Yaw Position");
+                Yaw.Plot = PositionGraph.Setup($"Yaw Position, {settings.YawKP}, {settings.YawKI}, {settings.YawKD}");
                 Yaw.setpoint.Send(port, Yaw.currentSetpoint);
                 Yaw.gains.Send(port, settings.YawKP, settings.YawKI, settings.YawKD);
             }
@@ -416,7 +416,7 @@ namespace WpfApplication1
         {
             if (port.IsOpen)
             {
-                Lift.Plot = PositionGraph.Setup("Lift Position");
+                Lift.Plot = PositionGraph.Setup($"Lift Position, {settings.LiftKP}, {settings.LiftKI}, {settings.LiftKD}");
                 Lift.setpoint.Send(port, Lift.currentSetpoint);
                 Lift.gains.Send(port, settings.LiftKP, settings.LiftKI, settings.LiftKD);
             }

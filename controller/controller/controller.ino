@@ -79,7 +79,7 @@ void setup()
 	// won't go full-speed ahead
 
 	// YAW
-	Yaw.setPidGains(1, 0, 0); 
+	Yaw.setPidGains(1.6, 1, 0.3); 
 	Yaw.maxOutput = 250;
 	Yaw.minOutput = 150;
 	Yaw.minInput = 200;
@@ -92,18 +92,16 @@ void setup()
 	// set setpoint to 0 (current position)
 
 	// LIFT
-	Lift.setPidGains(0.001, 0, 0);
-	Lift.maxOutput = 254;  
-	Lift.minOutput = 180; // Altitude should never go backwards
+	Lift.setPidGains(1, 0, 0);
 	Lift.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 	Lift.minInput = Lift.rawInput; // to prevent wander, set minimum to 0 
 	Lift.maxInput = Lift.rawInput + ALTITUDE_RANGE; // and maximum to 200 points difference
-	LiftPid.SetOutputLimits(Lift.minOutput, Lift.maxOutput);
 	LiftPid.SetMode(AUTOMATIC);
 	LiftPid.SetTunings(Lift.KP, Lift.KI, Lift.KD);
 
 	// set setpoints to current position until otherwise specified
 	Lift.setpoint = scaleValue(Lift.rawInput, Lift.minInput, Lift.maxInput, 0.0, 255.0);
+
 
 }
 
@@ -128,14 +126,13 @@ void loop()
 	analogWrite(ALTITUDE_OUTPUT_PIN, Lift.output);
 	analogWrite(YAW_OUTPUT_PIN, Yaw.output);
 
-
 	// if serial input provided, assign to correct value 
 	// note: MUST read until line to recieve multiple messages
 	if (Serial.available() > 0) {
 		assignSerialInput(Serial.readStringUntil('\n'));
 	}
 
-	Serial.println(String(Yaw.input) + " " + Yaw.output + " " + Lift.input + " " + Lift.output + " " + Yaw.setpoint + " " + Lift.setpoint + " P:" + Yaw.KP + " I:" + Yaw.KI + " D:" + Yaw.KD);
+	Serial.println(String(Yaw.input) + " " + Yaw.output + " " + String(Lift.input) + " " + Lift.output);
 }						  
 
 int assignSerialInput(String serialInput) {
@@ -236,3 +233,5 @@ void encoderInteruptLineB() {
 	}
 
 }
+
+
