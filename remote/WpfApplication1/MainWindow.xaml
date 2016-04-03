@@ -23,20 +23,29 @@
             
          <Window.Resources>
 
-        <Style TargetType="{x:Type Control}" x:Key="baseStyle">
-            <Setter Property="FontSize" Value="20" />
+        <Style TargetType="{x:Type Control}" x:Key="controlsBaseStyle">
+            <Setter Property="FontSize" Value="{Binding ElementName=FontSizeSlider, Path=Value}" />
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Height" Value="40" />
+            <Setter Property="Height" Value="50" />
             <Setter Property="FontFamily" Value="Sergoe UI"/>
             <Setter Property="FontWeight"  Value="Light"/>
-
         </Style>
-        
-        
-        <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource baseStyle}"></Style>
-        <Style TargetType="{x:Type Controls:NumericUpDown}" BasedOn="{StaticResource baseStyle}"></Style>
-        <Style TargetType="{x:Type Controls:ToggleSwitch}" BasedOn="{StaticResource baseStyle}"></Style>
+
+
+        <Style TargetType="{x:Type TextBlock}" x:Key="textblockBaseStyle">
+            <Setter Property="FontSize" Value="{Binding ElementName=FontSizeSlider, Path=Value}" />
+        </Style>
+
+        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource textblockBaseStyle}"></Style>
+
+        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource controlsBaseStyle}">
+            <Setter Property="Background" Value="{StaticResource GrayBrush10}"></Setter>
+           
+        </Style>
+        <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource controlsBaseStyle}"></Style>
+        <Style TargetType="{x:Type Controls:NumericUpDown}" BasedOn="{StaticResource controlsBaseStyle}"></Style>
+        <Style TargetType="{x:Type Controls:ToggleSwitch}" BasedOn="{StaticResource controlsBaseStyle}"></Style>
 
     </Window.Resources>
     <Controls:MetroWindow.RightWindowCommands>
@@ -85,12 +94,13 @@
 
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>
-                <Controls:Flyout Header="Plot" Position="Right" Width="800" IsOpen="{Binding ElementName=ViewPlotSwitch, Path=IsChecked}">
+            <Controls:Flyout Name="PlotsFlyout" Header="Plot"  Width="740"  IsOpenChanged="ViewPlotSwitch_Click" Position="Right" IsOpen="{Binding ElementName=ViewPlotSwitch, Path=IsChecked}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
                     </Grid.RowDefinitions>
+                    
                     
                     <oxy:PlotView  Grid.Row="0"
                                 Background="Transparent"
@@ -104,12 +114,13 @@
                                 Model="{Binding Path=Yaw.Plot}">
                     </oxy:PlotView>
                     
+                    
                  
                     
                 </Grid>
             </Controls:Flyout>
             
-            <Controls:Flyout Header="Settings" Position="Right" Width="300" IsOpen="{Binding ElementName=SettingsSwitch, Path=IsChecked}">
+            <Controls:Flyout Header="Settings" Position="Right" Width="500" IsOpen="{Binding ElementName=SettingsSwitch, Path=IsChecked}">
                 <Grid Margin="30">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"></RowDefinition>
@@ -143,6 +154,8 @@
                 <TextBlock Grid.Column="0" Grid.Row="5" VerticalAlignment="Center">Sample N</TextBlock>
                 <TextBox Grid.Column="1" Grid.Row="5"  VerticalAlignment="Center" Text="{Binding Source={x:Static p:Settings.Default}, Path=Samples, Mode=TwoWay}"/>
 
+                <TextBlock Grid.Column="0" Grid.Row="6" VerticalAlignment="Center">Font Size</TextBlock>
+                <Slider Name="FontSizeSlider" Grid.Column="1" Grid.Row="6"  VerticalAlignment="Center" Maximum="30" Minimum="5" Value="25"/>
 
                 <TextBlock Grid.Column="0" Grid.Row="3" VerticalAlignment="Center">Graph</TextBlock>
                 <Controls:ToggleSwitch Grid.Column="1" Grid.Row="3"  VerticalAlignment="Center" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=portOverride, Mode=TwoWay}"/>
@@ -159,8 +172,10 @@
                     BorderBrush="{DynamicResource AccentColorBrush}"
                     BorderThickness="0,2,0,0"
                     Padding="10" >
+            
             <TabItem Name="YawTab" Header="Yaw" >
-                <Grid>
+                <Grid Name="YawTabGrid">
+                    
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
@@ -171,13 +186,13 @@
                         <RowDefinition Height="*"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
                     </Grid.RowDefinitions>
+                    
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-
 
                     <TextBlock FontWeight="Bold" Grid.Column="0" Grid.Row="2" VerticalAlignment="Center">Output</TextBlock>
                     <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="1" VerticalAlignment="Center">Target</TextBlock>
@@ -186,32 +201,33 @@
                     <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="4" VerticalAlignment="Center">Running Error</TextBlock>
                     <TextBlock FontWeight="Bold" Grid.Column="0" Grid.Row="5" VerticalAlignment="Center">PID Gains</TextBlock>
 
-                    <Controls:ToggleSwitch Name="YawOutputMode"  FontWeight="Light" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Maximum="255" Minimum="150"  Value="{Binding Path=Yaw.currentOutput}" IsEnabled="{Binding ElementName=YawOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
 
-                    <Controls:ToggleSwitch Name="YawTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Interval="10" Value="{Binding Path=Yaw.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=YawTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:ToggleSwitch Name="YawTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Auto" OnLabel="Fixed"></Controls:ToggleSwitch>
+                    <Controls:NumericUpDown Interval="100" Value="{Binding Path=Yaw.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=YawTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" VerticalAlignment="Center"></Controls:NumericUpDown>
 
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKP, Mode=TwoWay}" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.001" Speedup="True"></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.001" Speedup="True" ></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKD, Mode=TwoWay}"  Grid.Row="5" Grid.Column="3" Minimum="0" Maximum="100" Interval="0.001" Speedup="True" ></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKP, Mode=TwoWay}" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.01" Speedup="True"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=YawKD, Mode=TwoWay}"  Grid.Row="5" Grid.Column="3" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
 
-                    <!-- {Binding Source={x:Static p:Settings.Default}, Path=SetpointOffset, Mode=TwoWay}" -->
-                    <TextBox Text="{Binding Path=Yaw.currentPosition}" IsEnabled="False" Name="YawPosition" Grid.Column="2" Grid.Row="0"  VerticalAlignment="Center"></TextBox>
-                    <TextBox Text="{Binding Path=Yaw.currentError}" IsEnabled="False" Name="YawCurrentError" Grid.Column="3" Grid.Row="3" VerticalAlignment="Center"></TextBox>
-                    <TextBox Text="{Binding Path=Yaw.runningError}" IsEnabled="False" Name="YawRunningError" Grid.Column="2" Grid.Row="4" Grid.ColumnSpan="2" VerticalAlignment="Center"></TextBox>
+                    <Controls:ToggleSwitch Name="YawOutputMode"  FontWeight="Light" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"   OffLabel="Auto" OnLabel="Fixed"></Controls:ToggleSwitch>
+                    <Controls:NumericUpDown Name="YawOutput" IsEnabled="{Binding ElementName=YawOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown IsEnabled="False" Name="YawPosition"     Grid.ColumnSpan="3" Grid.Column="1" Grid.Row="0"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown IsEnabled="False" Name="YawCurrentError" Grid.ColumnSpan="3" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown IsEnabled="False" Name="YawRunningError" Grid.ColumnSpan="3" Grid.Column="1" Grid.Row="4" VerticalAlignment="Center" Value="0"></Controls:NumericUpDown>
 
+                    <!--Value="{Binding Path=Yaw.currentOutput}"-->
+                    <!--Text="{Binding Path=Yaw.currentPosition}" -->
+                    <!--Value="{Binding Path=Yaw.currentError}"-->
+                    <!--Value="{Binding Path=Yaw.runningError}" -->
 
-                    <Button  Name="ApplyYawSettings" Click="ApplyYawSettings_Click" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="4">Update</Button>
-                    
-
+                    <Button  Name="ApplyYawSettings" Click="ApplyYawSettings_Click" Grid.Row="6" Height="100"  Grid.Column="0" Grid.RowSpan="2" Grid.ColumnSpan="4">Update</Button>
                     
                     
                 </Grid>
             </TabItem>
             <TabItem Header="Lift" >
+                <Grid Name="LiftTabGrid">
 
-                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
@@ -222,6 +238,7 @@
                         <RowDefinition Height="*"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
                     </Grid.RowDefinitions>
+
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="*"></ColumnDefinition>
@@ -229,37 +246,38 @@
                         <ColumnDefinition Width="*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
 
-
                     <TextBlock FontWeight="Bold" Grid.Column="0" Grid.Row="2" VerticalAlignment="Center">Output</TextBlock>
                     <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="1" VerticalAlignment="Center">Target</TextBlock>
                     <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="0" VerticalAlignment="Center">Position</TextBlock>
                     <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="3" VerticalAlignment="Center">Current Error</TextBlock>
                     <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="4" VerticalAlignment="Center">Running Error</TextBlock>
-                    <TextBlock FontWeight="Bold"  Grid.Column="0" Grid.Row="5" VerticalAlignment="Center">PID Gains</TextBlock>
-
-                    <Controls:ToggleSwitch Name="LiftOutputMode" FontWeight="Light" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Maximum="255" Minimum="150"  Value="{Binding Path=Lift.currentOutput}" IsEnabled="{Binding ElementName=LiftOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
-
-                    <Controls:ToggleSwitch Name="LiftTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Automatic" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Interval="10" Value="{Binding Path=Lift.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=LiftTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
-
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKP, Mode=TwoWay}"  Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.001" Speedup="True"></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.001" Speedup="True" ></Controls:NumericUpDown>
-                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKD, Mode=TwoWay}"  Grid.Row="5" Grid.Column="3" Minimum="0" Maximum="100" Interval="0.001" Speedup="True" ></Controls:NumericUpDown>
-
-                    <TextBox Text="{Binding Path=Lift.currentPosition}" IsEnabled="False" Name="LiftPosition" Grid.Column="2" Grid.Row="0"  VerticalAlignment="Center"></TextBox>
-                    <TextBox Text="{Binding Path=Lift.currentError}" IsEnabled="False" Name="LiftCurrentError" Grid.Column="3" Grid.Row="3" VerticalAlignment="Center"></TextBox>
-                    <TextBox Text="{Binding Path=Lift.runningError}" IsEnabled="False" Name="LiftRunningError" Grid.Column="2" Grid.Row="4" Grid.ColumnSpan="2" VerticalAlignment="Center"></TextBox>
+                    <TextBlock FontWeight="Bold" Grid.Column="0" Grid.Row="5" VerticalAlignment="Center">PID Gains</TextBlock>
 
 
+                    <Controls:ToggleSwitch Name="LiftTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Auto" OnLabel="Fixed"></Controls:ToggleSwitch>
+                    <Controls:NumericUpDown Interval="100" Value="{Binding Path=Lift.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=LiftTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" VerticalAlignment="Center"></Controls:NumericUpDown>
 
+                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKP, Mode=TwoWay}" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.01" Speedup="True"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKD, Mode=TwoWay}"  Grid.Row="5" Grid.Column="3" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>
 
-                    <Button Name="ApplyLiftSettings" Click="ApplyLiftSettings_Click" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="4">Update</Button>
+                    <Controls:ToggleSwitch Name="LiftOutputMode"  FontWeight="Light" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1"   OffLabel="Auto" OnLabel="Fixed"></Controls:ToggleSwitch>
+                    <Controls:NumericUpDown Name="LiftOutput" IsEnabled="{Binding ElementName=LiftOutputMode, Path=IsChecked}" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown IsEnabled="False" Name="LiftPosition"     Grid.ColumnSpan="3" Grid.Column="1" Grid.Row="0"  VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown IsEnabled="False" Name="LiftCurrentError" Grid.ColumnSpan="3" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown IsEnabled="False" Name="LiftRunningError" Grid.ColumnSpan="3" Grid.Column="1" Grid.Row="4" VerticalAlignment="Center" Value="0"></Controls:NumericUpDown>
 
+                    <!--Value="{Binding Path=Lift.currentOutput}"-->
+                    <!--Text="{Binding Path=Lift.currentPosition}" -->
+                    <!--Value="{Binding Path=Lift.currentError}"-->
+                    <!--Value="{Binding Path=Lift.runningError}" -->
 
+                    <Button  Name="ApplyLiftSettings" Click="ApplyLiftSettings_Click" Grid.Row="6" Height="70" Grid.Column="0" Grid.RowSpan="2" Grid.ColumnSpan="4">Update</Button>
 
 
                 </Grid>
+
+
             </TabItem>
 
             <TabItem Header="Routines">

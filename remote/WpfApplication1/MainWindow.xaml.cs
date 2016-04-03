@@ -370,28 +370,57 @@ namespace WpfApplication1
             double yawPosition, yawOutput;
             if (double.TryParse(serialIn[0], out yawPosition))
             {
-                Yaw.currentPosition = yawPosition;
+                this.Dispatcher.Invoke((Action)(() => {
+                    YawPosition.Value = yawPosition; 
+                    YawCurrentError.Value = Yaw.currentSetpoint - yawPosition;
+                    YawRunningError.Value += Math.Abs(Yaw.currentSetpoint - yawPosition);
+                }));
+
+                // DATABINDING TOO SLOW WHEN GRAPHING, SO REMOVE IT FOR READ-ONLY VALUES
+                // IT'S A CRYIN' SHAME BUT OH WELL
+
+                //Yaw.currentPosition = yawPosition;
                 //Yaw.currentError = Yaw.currentSetpoint - Yaw.currentPosition;
                 //Yaw.runningError += Math.Abs(Yaw.currentError);
-                PositionGraph.AddPoint(Yaw.Plot, new List<double> { Yaw.currentPosition, Yaw.currentSetpoint /*, Yaw.currentOutput*/ });
+                //Yaw.currentOutput = yawOutput;
+
+
+                PositionGraph.AddPoint(Yaw.Plot, new List<double> { yawPosition, Yaw.currentSetpoint });
             }
             if (double.TryParse(serialIn[1], out yawOutput))
             {
-                Yaw.currentOutput = yawOutput;
+                this.Dispatcher.Invoke((Action)(() => {
+                    YawOutput.Value = yawOutput;
+                }));
+
             }
 
             // lift values
             double liftPosition, liftOutput;
             if (double.TryParse(serialIn[2], out liftPosition))
             {
-                Lift.currentPosition = liftPosition;
+                this.Dispatcher.Invoke((Action)(() => {
+                    LiftPosition.Value = liftPosition;
+                    LiftCurrentError.Value = Lift.currentSetpoint - liftPosition;
+                    LiftRunningError.Value += Math.Abs(Lift.currentSetpoint - liftPosition);
+                }));
+
+                // DATABINDING TOO SLOW WHEN GRAPHING, SO REMOVE IT FOR READ-ONLY VALUES
+                // IT'S A CRYIN' SHAME BUT OH WELL
+
+                //Lift.currentPosition = liftPosition;
                 //Lift.currentError = Lift.currentSetpoint - Lift.currentPosition;
                 //Lift.runningError += Math.Abs(Lift.currentError);
-                PositionGraph.AddPoint(Lift.Plot, new List<double> { Lift.currentPosition, Lift.currentSetpoint , Lift.currentOutput });
+                //Lift.currentOutput = liftOutput;
+
+
+                PositionGraph.AddPoint(Lift.Plot, new List<double> { liftPosition, Lift.currentSetpoint });
             }
             if (double.TryParse(serialIn[3], out liftOutput))
             {
-                Lift.currentOutput = liftOutput;
+                this.Dispatcher.Invoke((Action)(() => {
+                    LiftOutput.Value = liftOutput;
+                }));
             }
 
         }
@@ -524,11 +553,22 @@ namespace WpfApplication1
             }
         }
         
-        private void RoutineOne_Click(object sender, RoutedEventArgs e)
+        private async void RoutineOne_Click(object sender, RoutedEventArgs e)
         {
-            Lift.setpoint.NewDestination(port, 100, 30);
-            Yaw.setpoint.NewDestination(port, 50, 30);
-            Lift.setpoint.NewDestination(port, 0, 30);
+            if (port.IsOpen)
+            {
+
+                await Task.Run(() =>
+                {
+                    Lift.setpoint.NewDestination(port, 100, settings.TimeoutSeconds);
+                    Yaw.setpoint.NewDestination(port, 130, settings.TimeoutSeconds);
+                    Lift.setpoint.NewDestination(port, 0, settings.TimeoutSeconds);
+                });
+            }
+            else
+            {
+                Alert_Async("NOT YET", "Open the port first please.");
+            }
         }
 
         private void RoutineTwo_Click(object sender, RoutedEventArgs e)
@@ -584,6 +624,25 @@ namespace WpfApplication1
             tryToRead = false;
             port.Close();
             settings.Save();
+        }
+
+        private void ViewPlotSwitch_Click(object sender, RoutedEventArgs e)
+        {
+            if (PlotsFlyout.IsOpen)
+            {
+
+                for (int i = 0; i < 4; i++)
+                {
+                    YawTabGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                }
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    YawTabGrid.ColumnDefinitions.RemoveAt(YawTabGrid.ColumnDefinitions.Count - 1);
+                }
+            }
         }
     }
 }
