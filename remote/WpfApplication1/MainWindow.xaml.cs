@@ -557,13 +557,36 @@ namespace WpfApplication1
         {
             if (port.IsOpen)
             {
+                YawTargetMode.IsChecked = false;
 
                 await Task.Run(() =>
                 {
-                    Lift.setpoint.NewDestination(port, 100, settings.TimeoutSeconds);
-                    Yaw.setpoint.NewDestination(port, 130, settings.TimeoutSeconds);
-                    Lift.setpoint.NewDestination(port, 0, settings.TimeoutSeconds);
+                    this.Dispatcher.Invoke((Action)(() =>
+                    {
+                        YawTarget.Value = -130;
+                    }));
+                    Yaw.setpoint.NewDestination(port, -130, 5).Wait();
                 });
+
+                await Task.Run(() =>
+                {
+                    this.Dispatcher.Invoke((Action)(() =>
+                    {
+                        YawTarget.Value = 0;
+                    }));
+                    Yaw.setpoint.NewDestination(port, 0, 5).Wait();
+                });
+
+                await Task.Run(() =>
+                {
+                    this.Dispatcher.Invoke((Action)(() =>
+                    {
+                        YawTarget.Value = 130;
+                    }));
+                    Yaw.setpoint.NewDestination(port, 130, 5).Wait();
+                });
+
+                YawTargetMode.IsChecked = true;
             }
             else
             {
