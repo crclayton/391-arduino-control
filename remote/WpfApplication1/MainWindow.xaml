@@ -255,7 +255,7 @@
 
 
                     <Controls:ToggleSwitch Name="LiftTargetMode" IsChecked="True" FontWeight="Light" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1"   OffLabel="Auto" OnLabel="Fixed"></Controls:ToggleSwitch>
-                    <Controls:NumericUpDown Interval="100" Value="{Binding Path=Lift.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=LiftTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" VerticalAlignment="Center"></Controls:NumericUpDown>
+                    <Controls:NumericUpDown Name="LiftTarget" Interval="100" Value="{Binding Path=Lift.currentSetpoint, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" IsEnabled="{Binding ElementName=LiftTargetMode, Path=IsChecked}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" VerticalAlignment="Center"></Controls:NumericUpDown>
 
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKP, Mode=TwoWay}" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" Interval="0.01" Speedup="True"></Controls:NumericUpDown>
                     <Controls:NumericUpDown Value="{Binding Source={x:Static p:Settings.Default}, Path=LiftKI, Mode=TwoWay}"  Grid.Row="5" Grid.Column="2" Minimum="0" Maximum="100" Interval="0.01" Speedup="True" ></Controls:NumericUpDown>

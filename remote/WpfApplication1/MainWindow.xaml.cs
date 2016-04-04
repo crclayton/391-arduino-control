@@ -557,36 +557,27 @@ namespace WpfApplication1
         {
             if (port.IsOpen)
             {
-                YawTargetMode.IsChecked = false;
+                YawTargetMode.IsChecked = LiftTargetMode.IsChecked = false;
 
-                await Task.Run(() =>
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += delegate
                 {
-                    this.Dispatcher.Invoke((Action)(() =>
-                    {
-                        YawTarget.Value = -130;
-                    }));
-                    Yaw.setpoint.NewDestination(port, -130, 5).Wait();
-                });
 
-                await Task.Run(() =>
-                {
-                    this.Dispatcher.Invoke((Action)(() =>
-                    {
-                        YawTarget.Value = 0;
-                    }));
-                    Yaw.setpoint.NewDestination(port, 0, 5).Wait();
-                });
+                    Lift.setpoint.Send(port, 1000);
+                    System.Threading.Thread.Sleep(10 * 1000);
 
-                await Task.Run(() =>
-                {
-                    this.Dispatcher.Invoke((Action)(() =>
-                    {
-                        YawTarget.Value = 130;
-                    }));
-                    Yaw.setpoint.NewDestination(port, 130, 5).Wait();
-                });
+                    Yaw.setpoint.Send(port, -130);
+                    System.Threading.Thread.Sleep(10 * 1000);
 
-                YawTargetMode.IsChecked = true;
+                    Lift.setpoint.Send(port, -1000);
+                    System.Threading.Thread.Sleep(10 * 1000);
+
+                };
+                worker.RunWorkerAsync();
+
+                
+
+                YawTargetMode.IsChecked = LiftTargetMode.IsChecked = true;
             }
             else
             {
