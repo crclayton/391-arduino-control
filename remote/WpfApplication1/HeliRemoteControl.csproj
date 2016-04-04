@@ -106,6 +106,15 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="bin\Debug\391-remote-control.exe.config" />
+    <None Include="bin\Debug\391-remote-control.vshost.exe.config" />
+    <None Include="bin\Debug\HeliRemoteControl.vshost.exe.config" />
+    <None Include="bin\Debug\WpfApplication1.exe.config" />
+    <None Include="bin\Debug\WpfApplication1.vshost.exe.config" />
+    <None Include="bin\Debug\WpfApplication1.vshost.exe.manifest" />
+    <None Include="bin\Release\WpfApplication1.exe.config" />
+    <None Include="bin\Release\WpfApplication1.vshost.exe.config" />
+    <None Include="bin\Release\WpfApplication1.vshost.exe.manifest" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -119,10 +128,43 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="bin\Debug\MahApps.Metro.xml" />
+    <Resource Include="bin\Release\MahApps.Metro.xml" />
+    <Resource Include="bin\Release\OxyPlot.Wpf.xml" />
+    <Resource Include="bin\Release\OxyPlot.xml" />
+    <Resource Include="bin\Release\OxyPlot.Xps.xml" />
     <Resource Include="icon.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="icon2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="bin\Debug\MahApps.Metro.dll" />
+    <Content Include="bin\Debug\MahApps.Metro.pdb" />
+    <Content Include="bin\Debug\OxyPlot.dll" />
+    <Content Include="bin\Debug\OxyPlot.Wpf.dll" />
+    <Content Include="bin\Debug\OxyPlot.Xps.dll" />
+    <Content Include="bin\Debug\System.Windows.Interactivity.dll" />
+    <Content Include="bin\Debug\WpfApplication1.exe" />
+    <Content Include="bin\Debug\WpfApplication1.pdb" />
+    <Content Include="bin\Debug\WpfApplication1.vshost.exe" />
+    <Content Include="bin\Release\DynamicDataDisplay.dll" />
+    <Content Include="bin\Release\DynamicDataDisplay.Maps.dll" />
+    <Content Include="bin\Release\DynamicDataDisplay.Markers.dll" />
+    <Content Include="bin\Release\DynamicDataDisplay.Markers2.dll" />
+    <Content Include="bin\Release\MahApps.Metro.dll" />
+    <Content Include="bin\Release\MahApps.Metro.pdb" />
+    <Content Include="bin\Release\OxyPlot.dll" />
+    <Content Include="bin\Release\OxyPlot.pdb" />
+    <Content Include="bin\Release\OxyPlot.Wpf.dll" />
+    <Content Include="bin\Release\OxyPlot.Wpf.pdb" />
+    <Content Include="bin\Release\OxyPlot.Xps.dll" />
+    <Content Include="bin\Release\OxyPlot.Xps.pdb" />
+    <Content Include="bin\Release\Parser.dll" />
+    <Content Include="bin\Release\System.Windows.Interactivity.dll" />
+    <Content Include="bin\Release\WpfApplication1.exe" />
+    <Content Include="bin\Release\WpfApplication1.pdb" />
+    <Content Include="bin\Release\WpfApplication1.vshost.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
