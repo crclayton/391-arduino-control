@@ -541,6 +541,8 @@ namespace WpfApplication1
             {
                 try
                 {
+                    port.DataReceived -= new SerialDataReceivedEventHandler(serialDataRecieved);
+
                     tryToRead = false;
                     port.Close();
                 }
@@ -553,30 +555,32 @@ namespace WpfApplication1
             }
         }
         
+        async Task RoutineOneTask()
+        {
+            Lift.setpoint.Send(port, 200);
+            Lift.currentSetpoint = 100;
+            await Task.Delay(1000 * 10);
+
+            Yaw.setpoint.Send(port, -127.5);
+            Yaw.currentSetpoint = -127.5;
+            await Task.Delay(1000 * 10);
+
+            Lift.currentSetpoint = 0;
+            Lift.setpoint.Send(port, 0);            
+        }
+
         private async void RoutineOne_Click(object sender, RoutedEventArgs e)
         {
+            
+
             if (port.IsOpen)
             {
+                Yaw.Plot = PositionGraph.Setup($"Yaw Position, {settings.YawKP}, {settings.YawKI}, {settings.YawKD}");
+                Lift.Plot = PositionGraph.Setup($"Lift Position, {settings.LiftKP}, {settings.LiftKI}, {settings.LiftKD}");
+
+            
                 YawTargetMode.IsChecked = LiftTargetMode.IsChecked = false;
-
-                BackgroundWorker worker = new BackgroundWorker();
-                worker.DoWork += delegate
-                {
-
-                    Lift.setpoint.Send(port, 1000);
-                    System.Threading.Thread.Sleep(10 * 1000);
-
-                    Yaw.setpoint.Send(port, -130);
-                    System.Threading.Thread.Sleep(10 * 1000);
-
-                    Lift.setpoint.Send(port, -1000);
-                    System.Threading.Thread.Sleep(10 * 1000);
-
-                };
-                worker.RunWorkerAsync();
-
-                
-
+                await RoutineOneTask();                       
                 YawTargetMode.IsChecked = LiftTargetMode.IsChecked = true;
             }
             else
