@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<VoiceCommands xmlns="http://schemas.microsoft.com/voicecommands/1.2">
+  <CommandSet xml:lang="en-us" Name="CustomCommands">
+   <CommandPrefix> Tell the robot to </CommandPrefix>
+    <Example> Open File, Open Website </Example>
+    
+    <Command Name="TurnAround">
+      <Example> Turn Around </Example>          
+      <ListenFor> Turn Around </ListenFor>    
+      <Feedback> Every now and then I get a little bit lonely </Feedback>
+      <Navigate/>          
+    </Command>
+
+    <Command Name="LiftOff">
+      <Example> Lift Off </Example>          
+      <ListenFor> Lift Off </ListenFor>    
+      <Feedback> I can bench 450, you don't want a lift-off. </Feedback>
+      <Navigate/>          
+    </Command>
+    
+    <Command Name="Land">
+      <Example> Touch Down </Example>          
+      <ListenFor> Touch Down </ListenFor>    
+      <Feedback> Boom, big 6 points. Suck it. </Feedback>
+      <Navigate/>          
+    </Command>
+
+    <Command Name="TurnThreeSixty">
+      <Example> Turn Three Sixty </Example>
+      <ListenFor> Do a three sixty </ListenFor>
+      <Feedback> Stand back y'all, dis going to be dope. </Feedback>
+      <Navigate/>
+    </Command>
+    
+
+    
+  </CommandSet>  
+
+</VoiceCommands>
