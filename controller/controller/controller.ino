@@ -1,12 +1,10 @@
 /*
 * Author: Charles Clayton
-* Date: 23-Feb-16
-* Description: PID control for the lever arm altitude
-* Additional info:
-*    Arduino PMW output signal for PIN 3 is 16MHz / 64 / 255 / 2 = 490.196Hz -> 2.041ms T
+* Created: 23-Feb-16
+* Last Modified: 09-Apr-16
+* Description: PID control for the lever arm altitude and the yaw
 */
 
-#include <LiquidCrystal.h>
 #include <PID_v1_trimmed.h>
 #include <Definitions.h>
 
@@ -92,7 +90,7 @@ void setup()
 	// set setpoint to 0 (current position)
 
 	// LIFT
-	Lift.setPidGains(10, 10, 0);
+	Lift.setPidGains(10, 3, 0.5);
 	Lift.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 	Lift.minInput = Lift.rawInput; // to prevent wander, set minimum to 0 
 	Lift.maxInput = Lift.rawInput + ALTITUDE_RANGE; // and maximum to 200 points difference
@@ -100,23 +98,21 @@ void setup()
 	LiftPid.SetTunings(Lift.KP, Lift.KI, Lift.KD);
 
 	// set setpoints to current position until otherwise specified
-	Lift.setpoint = scaleValue(Lift.rawInput, Lift.minInput, Lift.maxInput, 0.0, 255.0);
-
-
+	Lift.setpoint = scaleValue(Lift.rawInput, Lift.minInput, Lift.maxInput, 
+								0, 255);
 }
 
 void loop()
 {
-
 	Lift.rawInput = analogRead(ALTITUDE_INPUT_PIN);
 
 	// current position values from potentiometer scaled between 0-255
 	Lift.input = scaleValue(Lift.rawInput, 
-		Lift.minInput, Lift.maxInput, 0.0, 255.0);
+		Lift.minInput, Lift.maxInput, 0, 255);
 
 	// current position value from encoder's interupt counter
 	Yaw.input = scaleValue(Yaw.rawInput, 
-		Yaw.minInput, Yaw.maxInput, 0.0, 255.0);
+		Yaw.minInput, Yaw.maxInput, 0, 255);
 
 	// calculate new outputs
 	LiftPid.Compute();
@@ -132,7 +128,8 @@ void loop()
 		assignSerialInput(Serial.readStringUntil('\n'));
 	}
 
-	Serial.println(String(Yaw.input) + " " + Yaw.output + " " + String(Lift.input) + " " + Lift.output);
+	Serial.println(String(Yaw.input) + " " + Yaw.output + " " 
+					+ String(Lift.input) + " " + Lift.output);
 }						  
 
 int assignSerialInput(String serialInput) {
@@ -182,56 +179,41 @@ int assignSerialInput(String serialInput) {
 	return 0;
 }
 
-double scaleValue(double input, double minimum, double maximum, double output_min, double output_max) {
-	return (((input - minimum) * (output_max - output_min)) / (maximum - minimum)) + output_min;
+double scaleValue(double input, double minimum, double maximum, 
+				  double output_min, double output_max) {
+	return (((input - minimum) * (output_max - output_min)) 
+		/ (maximum - minimum)) + output_min;
 }
-
-double percentDifference(double input, double setpoint) {
-	return (setpoint - input) / ((setpoint + input) / 2) * 100;
-}
-
-bool buttonPressed(int pin) {
-	int buttonState = digitalRead(pin);
-	return buttonState == HIGH;
-}
-
 
 void encoderInteruptLineA() {
-
-
 	if (digitalRead(YAW_INPUT_PIN_1) == HIGH) {
-
 		if (digitalRead(YAW_INPUT_PIN_2) == LOW) 
-			Yaw.rawInput = Yaw.rawInput + 1;         
+			Yaw.rawInput++;         
 		else 
-			Yaw.rawInput = Yaw.rawInput - 1;         
+			Yaw.rawInput--;         
 	}
 	else                                      
 	{
 		if (digitalRead(YAW_INPUT_PIN_2) == HIGH) 
-			Yaw.rawInput = Yaw.rawInput + 1;          		
+			Yaw.rawInput++;          		
 		else 
-			Yaw.rawInput = Yaw.rawInput - 1;          
+			Yaw.rawInput--;          
 	}
 }
 
 void encoderInteruptLineB() {
-
 	if (digitalRead(YAW_INPUT_PIN_2) == HIGH) {
-
 		if (digitalRead(YAW_INPUT_PIN_1) == HIGH) 
-			Yaw.rawInput = Yaw.rawInput + 1;        
+			Yaw.rawInput++;        
 		else 
-			Yaw.rawInput = Yaw.rawInput - 1;        
+			Yaw.rawInput--;        
 	}
 	else {
-
 		if (digitalRead(YAW_INPUT_PIN_1) == LOW) 
-			Yaw.rawInput = Yaw.rawInput + 1;          
+			Yaw.rawInput++;          
 		else 
-			Yaw.rawInput = Yaw.rawInput - 1;         
+			Yaw.rawInput--;         
 	}
-
 }
 
 
